@@ -5,6 +5,7 @@
 
 # Dependencies
 node_modules/
+.node/
 
 # Python
 __pycache__/
