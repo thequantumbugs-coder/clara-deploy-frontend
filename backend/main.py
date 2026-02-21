@@ -38,6 +38,7 @@ async def websocket_clara(websocket: WebSocket):
     await websocket.accept()
     try:
         # FRONT-Clara-1 expects { state: number, payload?: any }
+        # Send initial state so client shows sleep screen (can be overridden by ?state= for E2E)
         await websocket.send_json({"state": 0, "payload": None})
         while True:
             data = await websocket.receive_text()
@@ -47,12 +48,11 @@ async def websocket_clara(websocket: WebSocket):
                 if action == "wake":
                     await websocket.send_json({"state": 3, "payload": None})
                 elif action == "language_selected":
-                    await websocket.send_json({"state": 4, "payload": None})
+                    await websocket.send_json({"state": 5, "payload": None})  # Chat after language
                 elif action == "menu_select":
-                    id_ = msg.get("id")
-                    await websocket.send_json({"state": 5 if id_ == "voice" else 4, "payload": msg})
+                    await websocket.send_json({"state": 5, "payload": msg})
                 else:
-                    await websocket.send_json({"state": 4, "payload": msg})
+                    await websocket.send_json({"state": 5, "payload": msg})
             except Exception:
                 await websocket.send_json({"state": 0, "payload": None})
     except Exception as e:

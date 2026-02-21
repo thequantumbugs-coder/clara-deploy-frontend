@@ -44,6 +44,7 @@ export default function LanguageSelect({ onSelect }: { onSelect: () => void }) {
             whileTap={{ scale: 0.97 }}
             onClick={() => handleSelect(lang.name)}
             className="glass touch-button group relative overflow-hidden rounded-2xl flex flex-col items-center justify-center py-12 px-8 transition-all hover:border-neo-mint/30"
+            data-testid={`language-${lang.name.toLowerCase()}`}
           >
             <div className="absolute inset-0 bg-neo-mint/0 group-active:bg-neo-mint/5 transition-colors" />
             

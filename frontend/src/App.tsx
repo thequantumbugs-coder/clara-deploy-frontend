@@ -6,18 +6,36 @@ import { LanguageProvider } from './context/LanguageContext';
 // Components
 import SleepScreen from './components/SleepScreen';
 import LanguageSelect from './components/LanguageSelect';
-import MainMenu from './components/MainMenu';
-import VoiceConversation from './components/VoiceConversation';
+import ChatScreen from './components/ChatScreen';
+import type { ChatMessage } from './types/chat';
 
 export default function App() {
   const { state, payload, setManualState, sendMessage } = useWebSocket('ws://localhost:8000/ws/clara');
-  
+  const [urlOverrideState, setUrlOverrideState] = React.useState<number | null>(null);
+
+  // E2E / test: ?state=5 opens chat directly; sticky so WS cannot overwrite
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('state');
+    if (s !== null) {
+      const n = parseInt(s, 10);
+      if (n >= 0 && n <= 8) setUrlOverrideState(n);
+    }
+  }, []);
+
+  const effectiveState = urlOverrideState !== null ? urlOverrideState : state;
+  const setEffectiveState = (n: number) => {
+    setUrlOverrideState(null);
+    setManualState(n);
+  };
+
   // Debug mode: Listen for keys 0-8
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = parseInt(e.key);
       if (key >= 0 && key <= 8) {
         console.log(`Debug: Switching to state ${key}`);
+        setUrlOverrideState(null);
         setManualState(key);
       }
     };
@@ -26,13 +44,14 @@ export default function App() {
   }, [setManualState]);
 
   const renderState = () => {
-    switch (state) {
+    switch (effectiveState) {
       case 0:
         return (
           <motion.div key="sleep" className="w-full h-full">
             <SleepScreen 
               onWake={() => {
                 sendMessage({ action: 'wake' });
+                setUrlOverrideState(null);
                 setManualState(3); // Transition to language select
               }} 
             />
@@ -44,31 +63,24 @@ export default function App() {
             <LanguageSelect 
               onSelect={() => {
                 sendMessage({ action: 'language_selected' });
-                setManualState(4); // Transition to main menu
+                setUrlOverrideState(null);
+                setManualState(5); // Transition to chat (voice) — post-language flow
               }} 
             />
           </motion.div>
         );
       case 4:
-        return (
-          <motion.div key="menu" className="w-full h-full">
-            <MainMenu 
-              onAction={(id) => {
-                sendMessage({ action: 'menu_select', id });
-                if (id === 'voice') setManualState(5);
-              }} 
-            />
-          </motion.div>
-        );
       case 5:
         return (
           <motion.div key="voice" className="w-full h-full">
-            <VoiceConversation 
-              messages={payload?.messages || [
-                { id: '1', role: 'clara', text: 'Hello! I am CLARA. How can I help you today?' }
-              ]}
-              isListening={payload?.isListening ?? true}
-              onBack={() => setManualState(4)}
+            <ChatScreen
+              messages={(payload?.messages as ChatMessage[] | undefined) ?? []}
+              isListening={payload?.isListening ?? false}
+              isSpeaking={payload?.isSpeaking ?? false}
+              isProcessing={payload?.isProcessing ?? false}
+              onBack={() => setEffectiveState(3)}
+              onOrbTap={() => sendMessage({ action: 'toggle_mic' })}
+              sendMessage={sendMessage}
             />
           </motion.div>
         );
@@ -81,12 +93,12 @@ export default function App() {
             className="w-full h-full flex items-center justify-center"
           >
             <div className="glass p-12 rounded-3xl text-center">
-              <h2 className="text-3xl font-display italic mb-4">State {state}</h2>
+              <h2 className="text-3xl font-display italic mb-4">State {effectiveState}</h2>
               <p className="text-stone-400 tracking-widest uppercase text-sm">
                 This interface is currently under development.
               </p>
               <button 
-                onClick={() => setManualState(0)}
+                onClick={() => setEffectiveState(0)}
                 className="mt-8 px-8 py-4 border border-white/10 rounded-full hover:bg-white/5 transition-colors"
               >
                 Return to Sleep
@@ -116,7 +128,7 @@ export default function App() {
         {/* Debug Indicator (Hidden in production) */}
         {process.env.NODE_ENV === 'development' && (
           <div className="absolute bottom-4 right-4 text-[8px] text-stone-800 uppercase tracking-widest pointer-events-none">
-            Kiosk Mode Active • State: {state} • WS: Connected
+            Kiosk Mode Active • State: {effectiveState} • WS: Connected
           </div>
         )}
       </div>

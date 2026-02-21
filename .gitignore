@@ -40,3 +40,7 @@ Thumbs.db
 .cache/
 tmp/
 temp/
+
+# Playwright
+frontend/test-results/
+playwright-report/

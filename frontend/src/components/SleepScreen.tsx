@@ -2,19 +2,20 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useLanguage } from '../context/LanguageContext';
 
-const ARCHITECTURAL_IMAGES = [
-  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1920',
-  'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1920',
-  'https://images.unsplash.com/photo-1503387762-592dee58c460?auto=format&fit=crop&q=80&w=1920',
+/* Local gradients so no external network (avoids ERR_NAME_NOT_RESOLVED when offline) */
+const BACKGROUND_GRADIENTS = [
+  'linear-gradient(135deg, rgba(30,30,35,0.95) 0%, rgba(20,22,28,0.9) 50%, rgba(15,15,18,0.95) 100%)',
+  'linear-gradient(160deg, rgba(28,30,35,0.95) 0%, rgba(18,20,24,0.9) 50%, rgba(12,12,15,0.95) 100%)',
+  'linear-gradient(120deg, rgba(25,28,32,0.95) 0%, rgba(22,24,28,0.9) 50%, rgba(18,18,22,0.95) 100%)',
 ];
 
 export default function SleepScreen({ onWake }: { onWake: () => void }) {
   const { t } = useLanguage();
-  const [currentImage, setCurrentImage] = React.useState(0);
+  const [currentIndex, setCurrentIndex] = React.useState(0);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % ARCHITECTURAL_IMAGES.length);
+      setCurrentIndex((prev) => (prev + 1) % BACKGROUND_GRADIENTS.length);
     }, 15000);
     return () => clearInterval(interval);
   }, []);
@@ -26,20 +27,17 @@ export default function SleepScreen({ onWake }: { onWake: () => void }) {
       exit={{ opacity: 0 }}
       className="relative w-full h-full overflow-hidden flex items-center justify-center cursor-pointer"
       onClick={onWake}
+      data-testid="sleep-screen"
     >
-      {/* Drifting Background Images */}
-      {ARCHITECTURAL_IMAGES.map((img, index) => (
+      {/* Drifting background gradients (no external images) */}
+      {BACKGROUND_GRADIENTS.map((grad, index) => (
         <motion.div
-          key={img}
-          initial={{ opacity: 0, scale: 1.1, x: -20 }}
-          animate={{
-            opacity: currentImage === index ? 0.4 : 0,
-            scale: currentImage === index ? 1 : 1.1,
-            x: currentImage === index ? 20 : -20,
-          }}
-          transition={{ duration: 15, ease: 'linear' }}
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${img})` }}
+          key={index}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: currentIndex === index ? 0.85 : 0 }}
+          transition={{ duration: 3, ease: 'easeInOut' }}
+          className="absolute inset-0"
+          style={{ background: grad }}
         />
       ))}
 
