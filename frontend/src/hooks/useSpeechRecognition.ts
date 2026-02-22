@@ -32,12 +32,15 @@ function errorCodeToMessage(code: string): string {
 export function useSpeechRecognition(
   sendMessage: (msg: object) => boolean | void,
   language: Language,
-  onError?: (errorCode: string, userMessage: string) => void
+  onError?: (errorCode: string, userMessage: string) => void,
+  onEmptyTranscript?: () => void
 ) {
   const recognitionRef = useRef<{ stop: () => void; abort?: () => void } | null>(null);
   const isListeningRef = useRef(false);
   const sendMessageRef = useRef(sendMessage);
   sendMessageRef.current = sendMessage;
+  const onEmptyRef = useRef(onEmptyTranscript);
+  onEmptyRef.current = onEmptyTranscript;
 
   const startListening = useCallback(() => {
     if (isListeningRef.current) return;
@@ -63,6 +66,8 @@ export function useSpeechRecognition(
       if (transcript) {
         const sent = sendMessageRef.current({ action: 'user_message', text: transcript });
         if (sent === false) onError?.('network', 'Connection lost. Try again.');
+      } else {
+        onEmptyRef.current?.();
       }
     };
 
@@ -92,7 +97,7 @@ export function useSpeechRecognition(
       recognitionRef.current = null;
       isListeningRef.current = false;
     }
-  }, [language, onError]);
+  }, [language, onError, onEmptyTranscript]);
 
   return { startListening };
 }

@@ -15,6 +15,12 @@ export interface TextMessage extends BaseMessage {
   timestamp?: string;
 }
 
+/** System messages: connection status, "I didn't catch that", etc. */
+export interface SystemMessage extends BaseMessage {
+  role: 'system';
+  text: string;
+}
+
 export interface CardCta {
   label: string;
   action: string;
@@ -61,7 +67,7 @@ export interface ImageCardMessage extends BaseMessage {
   timestamp?: string;
 }
 
-export type ChatMessage = TextMessage | CardMessage | CollegeBriefMessage | ImageCardMessage;
+export type ChatMessage = TextMessage | CardMessage | CollegeBriefMessage | ImageCardMessage | SystemMessage;
 
 export function isCardMessage(m: ChatMessage): m is CardMessage {
   return 'type' in m && m.type === 'card';
@@ -75,8 +81,12 @@ export function isImageCardMessage(m: ChatMessage): m is ImageCardMessage {
   return 'type' in m && m.type === 'image_card';
 }
 
+export function isSystemMessage(m: ChatMessage): m is SystemMessage {
+  return 'role' in m && m.role === 'system';
+}
+
 export function isTextMessage(m: ChatMessage): m is TextMessage {
-  return !isCardMessage(m) && !isCollegeBriefMessage(m) && !isImageCardMessage(m);
+  return !isCardMessage(m) && !isCollegeBriefMessage(m) && !isImageCardMessage(m) && !isSystemMessage(m);
 }
 
 /** Orb state: backend + mic-driven; off = silence detected for 800ms */

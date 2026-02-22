@@ -1,0 +1,183 @@
+/**
+ * CLARA Premium Futuristic Chat
+ * Glassmorphism Design System
+ */
+
+:root {
+  --app-bg: #0a0c10;
+  --glass-bg: rgba(10, 12, 16, 0.65);
+  /* Darker glass for better contrast */
+  --user-glass: rgba(0, 255, 120, 0.15);
+  /* Reverted to Green theme */
+  --clara-glass: rgba(0, 255, 120, 0.15);
+  --neon-green: rgba(0, 255, 120, 0.35);
+  /* Increased slightly for visibility */
+  --neon-cyan: rgba(34, 211, 238, 0.25);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+}
+
+.chat-screen-premium {
+  background-color: var(--app-bg);
+  position: relative;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Background college art - User Provided */
+.chat-bg-college {
+  position: absolute;
+  inset: 0;
+  background-image: url('/college_bg.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 1;
+  /* Full clarity as requested */
+  z-index: 1;
+}
+
+.chat-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 0%, rgba(10, 12, 16, 0.4) 100%);
+  /* Global blur removed for background sharpness */
+  z-index: 2;
+}
+
+/* Main floating glass panel - Expanded size as requested */
+.chat-panel-glass {
+  position: relative;
+  width: 95%;
+  /* Increased from 90% */
+  max-width: 1400px;
+  /* Increased from 1100px */
+  height: 90vh;
+  /* Increased from 85vh */
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  overflow: hidden;
+}
+
+/* Doodle layer inside the glass with extremely low opacity as requested */
+.chat-panel-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('/chat-background.png');
+  background-repeat: repeat;
+  opacity: 0.08;
+  /* Increased slightly as requested to be 'littly visible' */
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Panel edge glow at bottom center */
+.chat-panel-glow {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 650px;
+  height: 140px;
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.chat-header-minimal {
+  padding: 16px 32px;
+  background: transparent;
+  border-bottom: none;
+  /* Removed border to create single unit glass unit */
+  display: flex;
+  align-items: center;
+  min-height: 60px;
+}
+
+.chat-messages-scroll {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* User Bubble (Right) - Signature Green Glass */
+.bubble-glass-user {
+  align-self: flex-end;
+  background: var(--user-glass);
+  backdrop-filter: blur(25px);
+  padding: 18px 26px;
+  border-radius: 20px 20px 4px 20px;
+  border: 1px solid var(--neon-green);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  max-width: 70%;
+  color: #fff;
+  font-size: 19px;
+  line-height: 1.5;
+  position: relative;
+}
+
+/* Assistant Bubble (Left) - Signature Green Glass */
+.bubble-glass-clara {
+  align-self: flex-start;
+  background: var(--user-glass);
+  backdrop-filter: blur(25px);
+  padding: 18px 26px;
+  border-radius: 20px 20px 20px 4px;
+  border: 1px solid var(--neon-green);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  max-width: 70%;
+  color: #fff;
+  font-size: 19px;
+  line-height: 1.5;
+  position: relative;
+}
+
+.voice-visualizer-container {
+  height: 160px;
+  /* Matched to orb container size */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 20px;
+  background: transparent;
+  /* Seamless background */
+  border-top: none;
+  /* Removed the separator line requested by user */
+}
+
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

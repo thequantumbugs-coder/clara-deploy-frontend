@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const SILENCE_THRESHOLD_MS = 800;
 const RMS_SILENCE_THRESHOLD = 0.008;
 const SMOOTHING = 0.25;
-const FFT_SIZE = 256;
+export const FFT_SIZE = 256;
+export const FREQUENCY_BIN_COUNT = FFT_SIZE / 2;
 const MIN_DECIBELS = -60;
 const MAX_DECIBELS = -20;
 
@@ -14,13 +15,15 @@ export interface VoiceAnalyserResult {
   smoothedRms: number;
   smoothedFrequency: number;
   error: string | null;
+  /** Ref updated every frame with current frequency bin data (only when enabled). For waveform visualizer. */
+  frequencyDataRef: React.MutableRefObject<Uint8Array>;
 }
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-export function useVoiceAnalyser(enabled: boolean) {
+export function useVoiceFrequencyAnalyser(enabled: boolean) {
   const [result, setResult] = useState<VoiceAnalyserResult>({
     rms: 0,
     frequencyIntensity: 0,
@@ -37,6 +40,7 @@ export function useVoiceAnalyser(enabled: boolean) {
   const smoothedFreqRef = useRef(0);
   const silenceStartRef = useRef<number | null>(null);
   const enabledAtRef = useRef<number>(0);
+  const frequencyDataRef = useRef<Uint8Array>(new Uint8Array(FREQUENCY_BIN_COUNT));
 
   const updateResult = useCallback(
     (rms: number, freq: number, isSilent: boolean) => {
@@ -75,7 +79,6 @@ export function useVoiceAnalyser(enabled: boolean) {
     }
 
     let cancelled = false;
-    const freqData = new Uint8Array(FFT_SIZE / 2);
 
     const init = async () => {
       try {
@@ -90,20 +93,21 @@ export function useVoiceAnalyser(enabled: boolean) {
         const source = ctx.createMediaStreamSource(stream);
         const analyser = ctx.createAnalyser();
         analyser.fftSize = FFT_SIZE;
-        analyser.smoothingTimeConstant = 0.6;
+        analyser.smoothingTimeConstant = 0.8; // Better for smooth waves
         analyser.minDecibels = MIN_DECIBELS;
         analyser.maxDecibels = MAX_DECIBELS;
         source.connect(analyser);
         analyserRef.current = analyser;
         enabledAtRef.current = Date.now();
-        const timeData = new Uint8Array(analyser.frequencyBinCount);
+        const timeData = new Uint8Array(analyser.fftSize);
 
         const tick = () => {
           if (cancelled || !analyserRef.current) return;
           const a = analyserRef.current;
           a.getByteTimeDomainData(timeData);
-          a.getByteFrequencyData(freqData);
+          a.getByteFrequencyData(frequencyDataRef.current);
 
+          // Calculate RMS (Amplitude)
           let sum = 0;
           for (let i = 0; i < timeData.length; i++) {
             const n = (timeData[i] - 128) / 128;
@@ -111,15 +115,18 @@ export function useVoiceAnalyser(enabled: boolean) {
           }
           const rms = Math.sqrt(sum / timeData.length);
 
+          // Frequency intensity
+          const fd = frequencyDataRef.current;
           let freqSum = 0;
-          for (let i = 0; i < freqData.length; i++) freqSum += freqData[i];
-          const frequencyIntensity = freqData.length ? freqSum / freqData.length / 255 : 0;
+          for (let i = 0; i < fd.length; i++) freqSum += fd[i];
+          const frequencyIntensity = fd.length ? freqSum / fd.length / 255 : 0;
 
-          smoothedRmsRef.current = lerp(smoothedRmsRef.current, rms, SMOOTHING);
-          smoothedFreqRef.current = lerp(smoothedFreqRef.current, frequencyIntensity, SMOOTHING);
+          // Smoothing for animation
+          smoothedRmsRef.current = lerp(smoothedRmsRef.current, rms, 0.2); // Faster response
+          smoothedFreqRef.current = lerp(smoothedFreqRef.current, frequencyIntensity, 0.2);
 
           const now = Date.now();
-          const gracePeriodMs = 800;
+          const gracePeriodMs = 1000;
           const pastGracePeriod = now - enabledAtRef.current > gracePeriodMs;
           const isBelowThreshold = rms < RMS_SILENCE_THRESHOLD;
           if (isBelowThreshold && pastGracePeriod) {
@@ -162,5 +169,8 @@ export function useVoiceAnalyser(enabled: boolean) {
     };
   }, [enabled, updateResult]);
 
-  return result;
+  return { ...result, frequencyDataRef };
 }
+
+// Backward compatibility or alias
+export const useVoiceAnalyser = useVoiceFrequencyAnalyser;

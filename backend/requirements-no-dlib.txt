@@ -1,0 +1,16 @@
+# Same as requirements.txt but without face-recognition (dlib) and opencv/whisper to avoid CMake build.
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+chromadb>=0.4.0
+groq>=0.4.0
+tiktoken>=0.5.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+aiofiles>=23.2.0
+httpx>=0.25.0
+sounddevice>=0.4.6
+numpy>=1.24.0
+webrtcvad-wheels>=2.0.10
+edge-tts>=6.1.0
+sarvamai>=0.1.26a2
