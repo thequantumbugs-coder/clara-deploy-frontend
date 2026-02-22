@@ -10,6 +10,8 @@ import ChatScreen from './components/ChatScreen';
 import type { ChatMessage } from './types/chat';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:6969/ws/clara';
+/** "browser" = Web Speech API only (default for dev); "backend" = send mic_start, use backend recording. */
+const VOICE_INPUT_MODE = (import.meta.env.VITE_VOICE_INPUT_MODE || 'browser').toLowerCase() === 'backend' ? 'backend' : 'browser';
 const BACKEND_URL = (() => {
   try {
     const u = new URL(WS_URL.replace(/^ws/, 'http'));
@@ -20,7 +22,7 @@ const BACKEND_URL = (() => {
 })();
 
 export default function App() {
-  const { state, payload, isConnected, hasAttemptedConnect, setManualState, sendMessage, retryConnect } = useWebSocket(WS_URL);
+  const { state, payload, isConnected, setManualState, sendMessage, retryConnect, showOfflineBanner } = useWebSocket(WS_URL);
   const [urlOverrideState, setUrlOverrideState] = React.useState<number | null>(null);
 
   // E2E / test: ?state=5 opens chat directly; sticky so WS cannot overwrite
@@ -90,8 +92,9 @@ export default function App() {
               isProcessing={payload?.isProcessing ?? false}
               payload={payload}
               isConnected={isConnected}
+              voiceInputMode={VOICE_INPUT_MODE}
               onBack={() => setEffectiveState(3)}
-              onOrbTap={() => sendMessage({ action: 'toggle_mic' })}
+              onOrbTap={() => sendMessage({ action: 'mic_start' })}
               sendMessage={sendMessage}
             />
           </motion.div>
@@ -125,7 +128,7 @@ export default function App() {
     <LanguageProvider>
       <div className="relative w-full h-full bg-stone-950 overflow-hidden">
         {/* Connection banner when backend is unreachable */}
-        {hasAttemptedConnect && !isConnected && (
+        {showOfflineBanner && (
           <div className="absolute top-0 left-0 right-0 z-30 px-4 py-3 bg-amber-500/20 border-b border-amber-500/40 rounded-b-lg text-center text-amber-200 text-sm flex flex-col items-center justify-center gap-1">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <span>Cannot connect to backend at <a href={BACKEND_URL} target="_blank" rel="noopener noreferrer" className="underline">{BACKEND_URL}</a>.</span>

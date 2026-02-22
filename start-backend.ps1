@@ -31,4 +31,5 @@ if (-not (Test-Path $venvPython)) {
 }
 
 Write-Host "Starting backend at http://0.0.0.0:$port ..."
+$env:PORT = $port
 & $venvPython backend\main.py

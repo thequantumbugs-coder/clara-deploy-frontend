@@ -69,75 +69,99 @@ def tts_to_base64(text: str, language_code: str) -> str | None:
 
 async def process_user_text_and_reply(session: dict, text: str, websocket: WebSocket) -> None:
     """Shared flow: RAG context, Groq reply, TTS, send state 5 payload. Assumes text is non-empty."""
-    await websocket.send_json({"state": 5, "payload": {"isProcessing": True}})
+    try:
+        await websocket.send_json({"state": 5, "payload": {"isProcessing": True}})
+    except Exception as e:
+        logger.warning("Could not send isProcessing: %s", e)
+        return
     lang = session.get("language") or "English"
     lang_code = session.get("language_code") or TARGET_LANGUAGE_CODES["en"]
-    context = get_relevant_context(text, top_k=RAG_TOP_K)
-    if context.strip():
-        logger.info("RAG context: ok (%d chars)", len(context))
-    else:
-        logger.info("RAG context: empty")
-    if context.strip():
-        system_prompt = (
-            f"You are CLARA, a friendly campus assistant. "
-            f"Use ONLY the following college information when it is relevant to the user's question. "
-            f"Do not invent or assume college-specific facts; only use what is in the College information below. "
-            f"If the answer is not in the context, say you don't have that information. "
-            f"Reply only in {lang}. Be concise and helpful.\n\nCollege information:\n{context}"
-        )
-    else:
-        system_prompt = (
-            f"You are CLARA, a friendly campus assistant. "
-            f"For questions about the college or campus, say you don't have that information if you're unsure. "
-            f"Reply only in {lang}. Be concise and helpful."
-        )
-    reply_text = None
     try:
-        if GROQ_API_KEY:
-            from groq import Groq
-            client = Groq(api_key=GROQ_API_KEY)
-            completion = client.chat.completions.create(
-                model=RAG_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": text},
-                ],
-            )
-            reply_text = (completion.choices[0].message.content or "").strip()
-        else:
-            reply_text = "I'm sorry, the assistant is not configured."
-    except Exception as e:
-        logger.exception("Groq failed: %s", e)
-        reply_text = None
-    if not reply_text:
+        context = get_relevant_context(text, top_k=RAG_TOP_K)
         if context.strip():
-            # RAG fallback: answer from retrieved college context when Groq is unavailable
-            intro = "Based on our college information: "
-            max_fallback_chars = 600
-            trimmed = context.strip()
-            if len(trimmed) > max_fallback_chars:
-                trimmed = trimmed[: max_fallback_chars - 3].rsplit(maxsplit=1)[0] + "..."
-            reply_text = intro + trimmed
+            logger.info("RAG context: ok (%d chars)", len(context))
         else:
-            reply_text = (
-                "I'm sorry, I couldn't reach the assistant right now. "
-                "Please check your Groq API key in .env and try again."
+            logger.info("RAG context: empty")
+        if context.strip():
+            system_prompt = (
+                f"You are CLARA, a friendly campus assistant. "
+                f"Use ONLY the following college information when it is relevant to the user's question. "
+                f"Do not invent or assume college-specific facts; only use what is in the College information below. "
+                f"If the answer is not in the context, say you don't have that information. "
+                f"Reply only in {lang}. Be concise and helpful.\n\nCollege information:\n{context}"
             )
-    user_msg = {"id": f"user-{uuid.uuid4().hex}", "role": "user", "text": text}
-    assistant_msg = {"id": f"clara-{uuid.uuid4().hex}", "role": "clara", "text": reply_text}
-    session["messages"] = session.get("messages", []) + [user_msg, assistant_msg]
-    audio_b64 = tts_to_base64(reply_text, lang_code)
-    payload = {
-        "messages": [user_msg, assistant_msg],
-        "isProcessing": False,
-        "isSpeaking": bool(audio_b64),
-    }
-    if audio_b64:
-        payload["audioBase64"] = audio_b64
-    else:
-        payload["isSpeaking"] = False
-        payload["error"] = "Reply is shown but could not be read aloud."
-    await websocket.send_json({"state": 5, "payload": payload})
+        else:
+            system_prompt = (
+                f"You are CLARA, a friendly campus assistant. "
+                f"For questions about the college or campus, say you don't have that information if you're unsure. "
+                f"Reply only in {lang}. Be concise and helpful."
+            )
+        reply_text = None
+        try:
+            if GROQ_API_KEY:
+                from groq import Groq
+                client = Groq(api_key=GROQ_API_KEY)
+                completion = client.chat.completions.create(
+                    model=RAG_MODEL,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": text},
+                    ],
+                )
+                reply_text = (completion.choices[0].message.content or "").strip()
+            else:
+                reply_text = "I'm sorry, the assistant is not configured."
+        except Exception as e:
+            logger.exception("Groq failed: %s", e)
+            err_str = str(e).lower()
+            status = getattr(e, "status_code", None) or getattr(e, "code", None)
+            if status == 404 or "404" in err_str or ("model" in err_str and "not found" in err_str):
+                logger.warning(
+                    "Groq model not found (404 or invalid RAG_MODEL). "
+                    "Check .env RAG_MODEL matches a current model at https://console.groq.com/docs/models"
+                )
+            reply_text = None
+        if not reply_text or not reply_text.strip():
+            if context.strip():
+                logger.info("Using RAG fallback reply (Groq unavailable or empty)")
+                intro = "Based on our college information: "
+                max_fallback_chars = 600
+                trimmed = context.strip()
+                if len(trimmed) > max_fallback_chars:
+                    trimmed = trimmed[: max_fallback_chars - 3].rsplit(maxsplit=1)[0] + "..."
+                reply_text = intro + trimmed
+            else:
+                reply_text = (
+                    "I'm sorry, I couldn't reach the assistant right now. "
+                    "Please check your Groq API key in .env and try again."
+                )
+        user_msg = {"id": f"user-{uuid.uuid4().hex}", "role": "user", "text": text}
+        assistant_msg = {"id": f"clara-{uuid.uuid4().hex}", "role": "clara", "text": reply_text}
+        session["messages"] = session.get("messages", []) + [user_msg, assistant_msg]
+        audio_b64 = tts_to_base64(reply_text, lang_code)
+        payload = {
+            "messages": [user_msg, assistant_msg],
+            "isProcessing": False,
+            "isSpeaking": bool(audio_b64),
+        }
+        if audio_b64:
+            payload["audioBase64"] = audio_b64
+        else:
+            payload["isSpeaking"] = False
+            payload["error"] = "Reply is shown but could not be read aloud."
+        await websocket.send_json({"state": 5, "payload": payload})
+    except Exception as e:
+        logger.exception("process_user_text_and_reply failed: %s", e)
+        try:
+            await websocket.send_json({
+                "state": 5,
+                "payload": {
+                    "error": "Something went wrong. Please try again.",
+                    "isProcessing": False,
+                },
+            })
+        except Exception:
+            pass
 
 
 @asynccontextmanager
@@ -191,6 +215,7 @@ VALID_LANGUAGES = frozenset(LANGUAGE_NAME_TO_CODE_KEY.keys())
 @app.websocket("/ws/clara")
 async def websocket_clara(websocket: WebSocket):
     await websocket.accept()
+    logger.info("WebSocket client connected")
     session = {"language": None, "language_code": None, "messages": [], "cached_greeting_audio": None, "cached_greeting_message": None}
     try:
         # FRONT-Clara-1 expects { state: number, payload?: any }
@@ -271,19 +296,31 @@ async def websocket_clara(websocket: WebSocket):
                             },
                         })
                     else:
-                        transcript = wav_to_transcript(wav_bytes)
-                        if not (transcript or "").strip():
-                            logger.warning("STT returned empty for %d-byte WAV; check backend STT logs and mic device.", len(wav_bytes))
+                        try:
+                            transcript = wav_to_transcript(wav_bytes)
+                        except Exception as e:
+                            logger.exception("Sarvam STT failed: %s", e)
                             await websocket.send_json({
                                 "state": 5,
                                 "payload": {
-                                    "error": "No speech detected.",
-                                    "errorCode": "NO_SPEECH_DETECTED",
+                                    "error": "Speech recognition failed. Please try again.",
+                                    "errorCode": "STT_FAILED",
                                     "isProcessing": False,
                                 },
                             })
                         else:
-                            await process_user_text_and_reply(session, transcript.strip(), websocket)
+                            if not (transcript or "").strip():
+                                logger.warning("STT returned empty for %d-byte WAV; check backend STT logs and mic device.", len(wav_bytes))
+                                await websocket.send_json({
+                                    "state": 5,
+                                    "payload": {
+                                        "error": "No speech detected.",
+                                        "errorCode": "NO_SPEECH_DETECTED",
+                                        "isProcessing": False,
+                                    },
+                                })
+                            else:
+                                await process_user_text_and_reply(session, transcript.strip(), websocket)
                 elif action in ("mic_stop", "mic_cancel"):
                     # No-op for now; cancel would require a shared flag checked inside record_audio
                     await websocket.send_json({"state": 5, "payload": {"isProcessing": False}})
@@ -291,14 +328,17 @@ async def websocket_clara(websocket: WebSocket):
                     await websocket.send_json({"state": 5, "payload": msg})
                 else:
                     await websocket.send_json({"state": 5, "payload": msg})
-            except Exception:
+            except Exception as ex:
+                logger.exception("WebSocket message handling error: %s", ex)
                 await websocket.send_json({"state": 0, "payload": None})
     except Exception as e:
+        logger.exception("WebSocket error: %s", e)
         try:
             await websocket.send_json({"state": -1, "payload": {"error": str(e)}})
         except Exception:
             pass
     finally:
+        logger.info("WebSocket client disconnected")
         try:
             await websocket.close()
         except Exception:

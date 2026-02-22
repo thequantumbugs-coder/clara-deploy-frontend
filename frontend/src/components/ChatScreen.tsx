@@ -27,6 +27,8 @@ interface ChatScreenProps {
   isSpeaking?: boolean;
   isProcessing?: boolean;
   isConnected?: boolean;
+  /** "browser" = Web Speech API only (default); "backend" = backend mic recording. */
+  voiceInputMode?: 'browser' | 'backend';
   payload?: { audioBase64?: string; error?: string } | null;
   onBack: () => void;
   onOrbTap: () => void;
@@ -39,6 +41,7 @@ export default function ChatScreen({
   isSpeaking = false,
   isProcessing = false,
   isConnected = true,
+  voiceInputMode = 'browser',
   payload,
   onBack,
   onOrbTap,
@@ -241,15 +244,21 @@ export default function ChatScreen({
             state={orbState}
             onTap={() => {
               setRecognitionError(null);
-              if (!isConnected) {
+              if (voiceInputMode === 'backend' && !isConnected) {
                 setRecognitionError('Please wait for connection to backend.');
                 return;
+              }
+              if (voiceInputMode === 'browser' && !isConnected) {
+                setRecognitionError('Start the backend to get a reply (see top of page).');
               }
               const canStart = (orbState === 'idle' || orbState === 'off') && !isPlayingBackendAudio && !isProcessing;
               if (canStart) {
                 userRequestedListeningRef.current = true;
-                onOrbTap();
-                startSpeechRecognition();
+                if (voiceInputMode === 'backend') {
+                  onOrbTap();
+                } else {
+                  startSpeechRecognition();
+                }
               }
             }}
             label={orbState === 'idle' ? t('tapToSpeak') : orbState === 'listening' ? t('listening') : orbState === 'off' ? t('tapToSpeak') : undefined}

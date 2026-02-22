@@ -36,7 +36,8 @@ TEMP_DIR = os.getenv("TEMP_DIR", str(BASE_DIR / "temp"))
 
 # RAG Configuration
 RAG_MAX_TOKENS = int(os.getenv("RAG_MAX_TOKENS", "6000"))
-RAG_MODEL = os.getenv("RAG_MODEL", "llama-3-8b-8192")
+# Must be a valid Groq chat model id; if API returns 404, set in .env (see https://console.groq.com/docs/models)
+RAG_MODEL = os.getenv("RAG_MODEL", "llama-3.1-8b-instant")
 CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "college_knowledge")
 COLLEGE_KNOWLEDGE_PATH = os.getenv("COLLEGE_KNOWLEDGE_PATH", str(BASE_DIR / "college_knowledge.txt"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))

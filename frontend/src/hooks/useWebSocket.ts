@@ -1,9 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+export type ConnectionPhase =
+  | 'initial_connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'offline';
+
 export interface WSMessage {
   state: number;
   payload?: any;
 }
+
+const GRACE_MS = 5000;
+const RECONNECT_DEBOUNCE_MS = 2000;
+const INITIAL_BACKOFF_MS = 1000;
+const MAX_BACKOFF_MS = 8000;
 
 // Singleton per URL: cleanup never closes the socket so Strict Mode re-run always reuses it.
 interface SharedEntry {
@@ -13,8 +24,18 @@ interface SharedEntry {
   onMessage: (state: number, payload: any) => void;
   state: number;
   payload: any;
+  connectionPhase: ConnectionPhase;
+  setPhase: (phase: ConnectionPhase) => void;
 }
+
 const sharedByUrl = new Map<string, SharedEntry>();
+const hasConnectedOnceByUrl = new Map<string, boolean>();
+const connectionPhaseByUrl = new Map<string, ConnectionPhase>();
+const phaseListenersByUrl = new Map<string, Set<() => void>>();
+
+function notifyPhaseListeners(url: string) {
+  phaseListenersByUrl.get(url)?.forEach((l) => l());
+}
 
 const NOOP = () => {};
 
@@ -24,16 +45,34 @@ export function useWebSocket(url: string) {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [hasAttemptedConnect, setHasAttemptedConnect] = useState(false);
+  const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>(() =>
+    connectionPhaseByUrl.get(url) ?? 'initial_connecting'
+  );
   const [reconnectTrigger, setReconnectTrigger] = useState(0);
   const stateRef = useRef<number>(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backoffAttemptRef = useRef(0);
   const entryRef = useRef<SharedEntry | null>(null);
+
+  const showOfflineBanner = connectionPhase === 'offline';
 
   useEffect(() => {
     setHasAttemptedConnect(true);
 
     let entry = sharedByUrl.get(url);
     const needNewSocket = !entry || entry.socket.readyState === WebSocket.CLOSED;
+
+    // Subscribe to phase changes for this URL so we re-render when phase updates
+    const phaseListener = () =>
+      setConnectionPhase(connectionPhaseByUrl.get(url) ?? 'initial_connecting');
+    if (!phaseListenersByUrl.has(url)) phaseListenersByUrl.set(url, new Set());
+    phaseListenersByUrl.get(url)!.add(phaseListener);
+
+    const removePhaseListener = () => {
+      phaseListenersByUrl.get(url)?.delete(phaseListener);
+    };
 
     if (entry && !needNewSocket) {
       entry.refCount++;
@@ -44,6 +83,7 @@ export function useWebSocket(url: string) {
         setPayload(p ?? null);
       };
       entryRef.current = entry;
+      setConnectionPhase(entry.connectionPhase);
       if (entry.socket.readyState === WebSocket.OPEN) {
         setIsConnecting(false);
         setIsConnected(true);
@@ -66,6 +106,7 @@ export function useWebSocket(url: string) {
         return () => {
           clearTimeout(t);
           clearTimeout(t2);
+          removePhaseListener();
           const e = entryRef.current ?? entry;
           if (!e) return;
           e.refCount--;
@@ -75,6 +116,7 @@ export function useWebSocket(url: string) {
         };
       }
       return () => {
+        removePhaseListener();
         const e = entryRef.current ?? entry;
         if (!e) return;
         e.refCount--;
@@ -90,14 +132,31 @@ export function useWebSocket(url: string) {
       entry = null;
     }
 
+    const hasConnectedOnce = hasConnectedOnceByUrl.get(url) ?? false;
+    const initialPhase: ConnectionPhase = hasConnectedOnce ? 'reconnecting' : 'initial_connecting';
+    connectionPhaseByUrl.set(url, initialPhase);
+    notifyPhaseListeners(url);
+
     let socket: WebSocket;
     try {
       socket = new WebSocket(url);
     } catch (err) {
       setIsConnecting(false);
-      if (import.meta.env?.DEV) console.debug('WebSocket connection error, retrying…', err);
-      reconnectTimerRef.current = setTimeout(() => setReconnectTrigger((t) => t + 1), 3000);
+      if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) console.debug('WebSocket connection error, retrying…', err);
+      const delay = Math.min(
+        INITIAL_BACKOFF_MS * 2 ** backoffAttemptRef.current,
+        MAX_BACKOFF_MS
+      );
+      backoffAttemptRef.current = Math.min(backoffAttemptRef.current + 1, 10);
+      reconnectTimerRef.current = setTimeout(
+        () => {
+          reconnectTimerRef.current = null;
+          setReconnectTrigger((t) => t + 1);
+        },
+        delay
+      );
       return () => {
+        removePhaseListener();
         if (reconnectTimerRef.current) {
           clearTimeout(reconnectTimerRef.current);
           reconnectTimerRef.current = null;
@@ -116,13 +175,50 @@ export function useWebSocket(url: string) {
       },
       state: 0,
       payload: null,
+      connectionPhase: initialPhase,
+      setPhase: (phase: ConnectionPhase) => {
+        connectionPhaseByUrl.set(url, phase);
+        entry!.connectionPhase = phase;
+        notifyPhaseListeners(url);
+      },
     };
     sharedByUrl.set(url, entry);
     entryRef.current = entry;
 
+    if (!hasConnectedOnce) {
+      graceTimerRef.current = setTimeout(() => {
+        const current = connectionPhaseByUrl.get(url);
+        if (current === 'initial_connecting') {
+          connectionPhaseByUrl.set(url, 'offline');
+          notifyPhaseListeners(url);
+        }
+        graceTimerRef.current = null;
+      }, GRACE_MS);
+    } else {
+      reconnectingDebounceRef.current = setTimeout(() => {
+        const current = connectionPhaseByUrl.get(url);
+        if (current === 'reconnecting') {
+          connectionPhaseByUrl.set(url, 'offline');
+          notifyPhaseListeners(url);
+        }
+        reconnectingDebounceRef.current = null;
+      }, RECONNECT_DEBOUNCE_MS);
+    }
+
     socket.onopen = () => {
+      hasConnectedOnceByUrl.set(url, true);
+      if (graceTimerRef.current) {
+        clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+      }
+      if (reconnectingDebounceRef.current) {
+        clearTimeout(reconnectingDebounceRef.current);
+        reconnectingDebounceRef.current = null;
+      }
+      backoffAttemptRef.current = 0;
+      entry!.setPhase('connected');
       entry!.onConnected(true);
-      if (import.meta.env?.DEV) console.debug('CLARA WebSocket connected');
+      if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) console.debug('CLARA WebSocket connected');
     };
 
     socket.onmessage = (event) => {
@@ -142,26 +238,62 @@ export function useWebSocket(url: string) {
     };
 
     socket.onclose = () => {
+      entry!.setPhase('reconnecting');
+      hasConnectedOnceByUrl.set(url, true);
       sharedByUrl.delete(url);
-      // Only notify when someone is still subscribed (avoids stale close from pre-reuse socket)
       if (entry!.refCount > 0) {
         setIsConnecting(false);
         entry!.onConnected(false);
-        // Mark as reconnecting so banner stays hidden during the 3s retry delay
         setIsConnecting(true);
       }
-      if (import.meta.env?.DEV) {
-        console.warn('CLARA WebSocket disconnected at', url, '— Retrying in 3s. Ensure backend is running; if you changed frontend/.env.local, restart npm run dev.');
+      if (reconnectingDebounceRef.current) {
+        clearTimeout(reconnectingDebounceRef.current);
+        reconnectingDebounceRef.current = null;
+      }
+      reconnectingDebounceRef.current = setTimeout(() => {
+        const current = connectionPhaseByUrl.get(url);
+        if (current === 'reconnecting') {
+          connectionPhaseByUrl.set(url, 'offline');
+          notifyPhaseListeners(url);
+        }
+        reconnectingDebounceRef.current = null;
+      }, RECONNECT_DEBOUNCE_MS);
+      if (graceTimerRef.current) {
+        clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+      }
+      const delay = Math.min(
+        INITIAL_BACKOFF_MS * 2 ** backoffAttemptRef.current,
+        MAX_BACKOFF_MS
+      );
+      backoffAttemptRef.current = Math.min(backoffAttemptRef.current + 1, 10);
+      if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
+        console.warn(
+          'CLARA WebSocket disconnected at',
+          url,
+          '— Retrying in',
+          delay,
+          'ms. Ensure backend is running.'
+        );
       }
       reconnectTimerRef.current = setTimeout(() => {
         reconnectTimerRef.current = null;
         setReconnectTrigger((t) => t + 1);
-      }, 3000);
+      }, delay);
     };
 
     socket.onerror = () => {};
 
     return () => {
+      removePhaseListener();
+      if (graceTimerRef.current) {
+        clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+      }
+      if (reconnectingDebounceRef.current) {
+        clearTimeout(reconnectingDebounceRef.current);
+        reconnectingDebounceRef.current = null;
+      }
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -195,6 +327,7 @@ export function useWebSocket(url: string) {
       entry.socket.close();
       sharedByUrl.delete(url);
     }
+    backoffAttemptRef.current = 0;
     setReconnectTrigger((t) => t + 1);
   }, [url]);
 
@@ -204,6 +337,8 @@ export function useWebSocket(url: string) {
     isConnected,
     isConnecting,
     hasAttemptedConnect,
+    connectionPhase,
+    showOfflineBanner,
     sendMessage,
     setManualState,
     retryConnect,

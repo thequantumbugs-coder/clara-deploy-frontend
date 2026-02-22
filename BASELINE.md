@@ -33,7 +33,7 @@ This document captures the **baseline** state of the project: structure, voice i
 ## Backend (current structure)
 
 - **Entry:** `backend/main.py` (FastAPI + WebSocket).
-- **Config:** `backend/config.py` — env from `.env`; `TARGET_LANGUAGE_CODES`, `LANGUAGE_NAME_TO_CODE_KEY`, `GROQ_API_KEY`, `SARVAM_API_KEY`, `RAG_MODEL`.
+- **Config:** `backend/config.py` — env from `.env`; `TARGET_LANGUAGE_CODES`, `LANGUAGE_NAME_TO_CODE_KEY`, `GROQ_API_KEY`, `SARVAM_API_KEY`, `RAG_MODEL` (default is a current Groq chat model, overridable via `.env`).
 - **Greetings:** `backend/greetings.py` — `GREETINGS` dict (six languages, same text as frontend `claraGreeting`).
 - **Dependencies (voice):** `backend/requirements-voice.txt` (fastapi, uvicorn, websockets, pydantic, python-dotenv, groq, sarvamai). Full stack: `backend/requirements.txt`.
 
@@ -110,6 +110,7 @@ frontend/
 - **`.env`** (project root `clara_deployment-1`, gitignored): copy from `.env.example`. Set `GROQ_API_KEY`, `SARVAM_API_KEY`, and `PORT` (e.g. `6969`). Missing keys can cause TTS or Groq to fail; the UI may show "Couldn't reach the assistant" or similar. **After changing `GROQ_API_KEY` or any `.env` value, restart the backend** so the new values are loaded (env is read only at process start).
 - **Port already in use (Windows):** Run `netstat -ano | findstr ":6969"` (or your `PORT`). The **last column** is the process ID (PID), not the port. Then `Stop-Process -Id <PID> -Force`. Or use `.\start-backend.ps1`, which frees the port and starts the backend. Alternatively change `PORT` in `.env` and set `VITE_WS_URL=ws://localhost:<new port>/ws/clara` in `frontend/.env.local`, then restart both.
 - **Frontend still shows "Cannot connect to backend":** Restart the frontend (`npm run dev`) after changing `frontend/.env.local` so Vite picks up `VITE_WS_URL`. Check backend is running by opening `http://localhost:<PORT>/health`.
+- **Groq 404 or "model not found":** Set `RAG_MODEL` in `.env` to a current Groq model id (see [Groq models](https://console.groq.com/docs/models)); then restart the backend.
 - **Backend (voice):** From `clara_deployment-1`:  
   `python -m venv .venv` (if needed)  
   `.venv\Scripts\pip install -r backend\requirements.txt` (or `requirements-voice.txt`)  
