@@ -47,21 +47,20 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
     groupRef.current = group;
     scene.add(group);
 
-    // RADIUM GREEN COLORS (Matching Text Containers)
-    const radiumGreen = 0x00ff78; // Signature glowing radium green
-    const deepRadium = 0x059669; // Denser green for depth
+    // FIXED RADIUM GREEN - No shifts allowed
+    const PURE_RADIUM = 0x00ff78;
 
-    // 1. EVENT HORIZON (PITCH BLACK SHADOW)
+    // 1. EVENT HORIZON
     const sphereGeo = new THREE.SphereGeometry(0.8, 64, 64);
     const sphereMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
     const shadow = new THREE.Mesh(sphereGeo, sphereMat);
     shadowRef.current = shadow;
     group.add(shadow);
 
-    // 2. PHOTON RING (Thin bright edge) - RADIUM GREEN
+    // 2. PHOTON RING - STRICT GREEN
     const ringGeo = new THREE.TorusGeometry(0.82, 0.012, 16, 100);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: radiumGreen,
+      color: PURE_RADIUM,
       transparent: true,
       opacity: 0.9,
       blending: THREE.AdditiveBlending
@@ -69,13 +68,13 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
     const photonRing = new THREE.Mesh(ringGeo, ringMat);
     group.add(photonRing);
 
-    // 3. MAIN ACCRETION DISK - RADIUM GREEN
+    // 3. MAIN ACCRETION DISK - STRICT GREEN
     const diskGeo = new THREE.TorusGeometry(1.2, 0.1, 16, 100);
     const diskMat = new THREE.MeshStandardMaterial({
-      color: radiumGreen,
+      color: PURE_RADIUM,
       transparent: true,
       opacity: 0.7,
-      emissive: radiumGreen,
+      emissive: PURE_RADIUM,
       emissiveIntensity: 3.5,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide
@@ -85,13 +84,13 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
     diskRef.current = accretionDisk;
     group.add(accretionDisk);
 
-    // 4. LENSING DISK - RADIUM GREEN
+    // 4. LENSING DISK - STRICT GREEN
     const lensGeo = new THREE.TorusGeometry(1.05, 0.07, 16, 100);
     const lensMat = new THREE.MeshStandardMaterial({
-      color: radiumGreen,
+      color: PURE_RADIUM,
       transparent: true,
       opacity: 0.5,
-      emissive: radiumGreen,
+      emissive: PURE_RADIUM,
       emissiveIntensity: 2.5,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide
@@ -100,10 +99,10 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
     lensRef.current = lensingRing;
     group.add(lensingRing);
 
-    // 5. EXTERNAL VOLUMETRIC GLOW
+    // 5. EXTERNAL VOLUMETRIC GLOW - STRICT GREEN
     const glowGeo = new THREE.SphereGeometry(1.4, 32, 32);
     const glowMat = new THREE.MeshStandardMaterial({
-      color: radiumGreen,
+      color: PURE_RADIUM,
       transparent: true,
       opacity: 0.18,
       side: THREE.BackSide,
@@ -112,8 +111,8 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
     const glow = new THREE.Mesh(glowGeo, glowMat);
     group.add(glow);
 
-    // LIGHTING - RADIUM GREEN PROJECTION
-    const glowLight = new THREE.PointLight(radiumGreen, 3, 7);
+    // LIGHTING - STRICT GREEN
+    const glowLight = new THREE.PointLight(PURE_RADIUM, 3, 7);
     glowLight.position.set(0, 0, 1.2);
     glowLightRef.current = glowLight;
     scene.add(glowLight);
@@ -126,7 +125,6 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
       rafId = requestAnimationFrame(renderLoop);
 
       if (group && accretionDisk && lensingRing) {
-        // Rotations
         accretionDisk.rotation.z += 0.012;
         lensingRing.rotation.z -= 0.008;
 
@@ -141,20 +139,20 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
           lensingRing.scale.set(pulse, pulse, pulse);
 
           glowLight.intensity = 1.2 + Math.sin(t) * 0.8;
-          diskMat.emissiveIntensity = 3.5 + Math.sin(t) * 2;
+          diskMat.emissiveIntensity = 3.5 + Math.sin(t) * 1.5;
         }
 
         if (state === 'listening' || state === 'speaking') {
           const distortion = 1 + amplitude * 0.45;
-          const energy = amplitude * 12;
+          const energy = amplitude * 8; // Capped for stability
 
           shadow.scale.set(distortion, distortion, distortion);
           accretionDisk.scale.set(distortion * 1.15, distortion * 1.05, distortion);
           lensingRing.scale.set(distortion * 0.95, distortion * 1.15, distortion);
 
-          diskMat.emissiveIntensity = 4.5 + energy * 4;
-          lensMat.emissiveIntensity = 3.5 + energy * 4;
-          glowLight.intensity = 5 + energy * 6;
+          diskMat.emissiveIntensity = 4 + energy * 3;
+          lensMat.emissiveIntensity = 3 + energy * 3;
+          glowLight.intensity = 4 + energy * 5;
 
           accretionDisk.rotation.z += 0.02 + amplitude * 0.2;
           lensingRing.rotation.z -= 0.02 + amplitude * 0.2;
@@ -163,7 +161,8 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
         if (state === 'processing') {
           accretionDisk.rotation.z += 0.15;
           lensingRing.rotation.z += 0.12;
-          diskMat.emissiveIntensity = 2 + Math.sin(Date.now() * 0.04) * 10;
+          // Pulsing intensity but color stays PURE_RADIUM
+          diskMat.emissiveIntensity = 2 + Math.sin(Date.now() * 0.04) * 6;
         }
       }
 
@@ -199,7 +198,6 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
         filter: 'drop-shadow(0 0 25px rgba(0, 255, 120, 0.4))'
       }}
     >
-      {/* Soft shadow base */}
       <div className="absolute w-24 h-4 bottom-[20%] left-1/2 -translate-x-1/2 rounded-full bg-black/40 blur-lg pointer-events-none" />
     </div>
   );
