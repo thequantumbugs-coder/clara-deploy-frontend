@@ -149,17 +149,16 @@
 }
 
 .voice-visualizer-container {
-  height: 160px;
-  /* Matched to orb container size */
+  height: 200px;
+  /* Matched to new orb size */
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-bottom: 20px;
+  padding-bottom: 10px;
   background: transparent;
   /* Seamless background */
   border-top: none;
-  /* Removed the separator line requested by user */
 }
 
 /* Hide scrollbar */

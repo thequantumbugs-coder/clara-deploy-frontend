@@ -9,7 +9,7 @@ import LanguageSelect from './components/LanguageSelect';
 import ChatScreen from './components/ChatScreen';
 import type { ChatMessage } from './types/chat';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:6969/ws/clara';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/clara';
 /** "browser" = Web Speech API only (default for dev); "backend" = send mic_start, use backend recording. */
 const VOICE_INPUT_MODE = (import.meta.env.VITE_VOICE_INPUT_MODE || 'browser').toLowerCase() === 'backend' ? 'backend' : 'browser';
 const BACKEND_URL = (() => {
@@ -17,7 +17,7 @@ const BACKEND_URL = (() => {
     const u = new URL(WS_URL.replace(/^ws/, 'http'));
     return `${u.origin}`;
   } catch {
-    return 'http://localhost:6969';
+    return 'http://localhost:8000';
   }
 })();
 
@@ -60,24 +60,25 @@ export default function App() {
       case 0:
         return (
           <motion.div key="sleep" className="w-full h-full">
-            <SleepScreen 
+            <SleepScreen
               onWake={() => {
                 sendMessage({ action: 'wake' });
                 setUrlOverrideState(null);
                 setManualState(3); // Transition to language select
-              }} 
+              }}
             />
           </motion.div>
         );
       case 3:
         return (
           <motion.div key="lang" className="w-full h-full">
-            <LanguageSelect 
+            <LanguageSelect
               onSelect={(language) => {
                 sendMessage({ action: 'language_selected', language });
                 setUrlOverrideState(null);
                 setManualState(5); // Transition to chat (voice) — post-language flow
-              }} 
+              }}
+              onHome={() => setEffectiveState(0)}
             />
           </motion.div>
         );
@@ -101,7 +102,7 @@ export default function App() {
         );
       default:
         return (
-          <motion.div 
+          <motion.div
             key="fallback"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -112,7 +113,7 @@ export default function App() {
               <p className="text-stone-400 tracking-widest uppercase text-sm">
                 This interface is currently under development.
               </p>
-              <button 
+              <button
                 onClick={() => setEffectiveState(0)}
                 className="mt-8 px-8 py-4 border border-white/10 rounded-full hover:bg-white/5 transition-colors"
               >
@@ -142,7 +143,7 @@ export default function App() {
         )}
         {/* Global Warm Glow */}
         <div className="absolute inset-0 warm-glow pointer-events-none z-0" />
-        
+
         {/* Main Content */}
         <main className="relative z-10 w-full h-full">
           <AnimatePresence mode="wait">
@@ -152,7 +153,7 @@ export default function App() {
 
         {/* Subtle Kiosk Frame/Overlay */}
         <div className="absolute inset-0 border-[24px] border-black/20 pointer-events-none z-50 rounded-[40px]" />
-        
+
         {/* Debug Indicator (Hidden in production) */}
         {process.env.NODE_ENV === 'development' && (
           <div className="absolute bottom-4 right-4 text-[8px] text-stone-800 uppercase tracking-widest pointer-events-none">

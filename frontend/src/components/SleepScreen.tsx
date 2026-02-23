@@ -1,22 +1,21 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../context/LanguageContext';
 
-/* Local gradients so no external network (avoids ERR_NAME_NOT_RESOLVED when offline) */
-const BACKGROUND_GRADIENTS = [
-  'linear-gradient(135deg, rgba(30,30,35,0.95) 0%, rgba(20,22,28,0.9) 50%, rgba(15,15,18,0.95) 100%)',
-  'linear-gradient(160deg, rgba(28,30,35,0.95) 0%, rgba(18,20,24,0.9) 50%, rgba(12,12,15,0.95) 100%)',
-  'linear-gradient(120deg, rgba(25,28,32,0.95) 0%, rgba(22,24,28,0.9) 50%, rgba(18,18,22,0.95) 100%)',
+const CAMPUS_IMAGES = [
+  '/assets/campus1.png',
+  '/assets/campus2.png',
+  '/assets/campus3.png',
 ];
 
 export default function SleepScreen({ onWake }: { onWake: () => void }) {
   const { t } = useLanguage();
-  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % BACKGROUND_GRADIENTS.length);
-    }, 15000);
+      setCurrentIndex((prev) => (prev + 1) % CAMPUS_IMAGES.length);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -25,96 +24,126 @@ export default function SleepScreen({ onWake }: { onWake: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative w-full h-full overflow-hidden flex items-center justify-center cursor-pointer"
+      className="relative w-full h-full overflow-hidden cursor-pointer bg-black"
       onClick={onWake}
       data-testid="sleep-screen"
     >
-      {/* Drifting background gradients (no external images) */}
-      {BACKGROUND_GRADIENTS.map((grad, index) => (
+      {/* Background Slideshow */}
+      <AnimatePresence mode="wait">
         <motion.div
-          key={index}
+          key={currentIndex}
           initial={{ opacity: 0 }}
-          animate={{ opacity: currentIndex === index ? 0.85 : 0 }}
-          transition={{ duration: 3, ease: 'easeInOut' }}
-          className="absolute inset-0"
-          style={{ background: grad }}
-        />
-      ))}
-
-      {/* Warm Ambient Glow */}
-      <div className="absolute inset-0 warm-glow pointer-events-none" />
-
-      {/* Title block — scaled for 13" display (logo + separator + text) */}
-      <div className="relative z-10 flex items-center justify-center gap-0 px-6">
-        {/* Logo (circular emblem + SVIT banner) — larger for 13" */}
-        <div
-          className="w-[200px] min-w-[200px] h-[220px] flex-shrink-0 flex items-center justify-center"
-          aria-hidden
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 2, ease: 'easeInOut' }}
+          className="absolute inset-0 z-0"
         >
           <img
+            src={CAMPUS_IMAGES[currentIndex]}
+            alt="Campus"
+            className="w-full h-full object-cover"
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Cinematic Overlay: Gradient and Vignette */}
+      <div className="absolute inset-0 z-10">
+        {/* Dark cinematic gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+
+        {/* Vignette effect */}
+        <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.8)]" />
+
+
+      </div>
+
+      {/* Top-Left: Institutional Identity Block (Compact & Unified) */}
+      <motion.div
+        initial={{ y: -30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5, duration: 1.2, ease: "easeOut" }}
+        className="absolute top-16 left-16 z-20 flex items-center gap-10"
+      >
+        {/* Logo - Maintained size for authority */}
+        <div className="w-40 h-40 flex-shrink-0">
+          <img
             src="/svit-logo.png"
-            alt="SAI VIDYA INSTITUTE OF TECHNOLOGY"
-            className="max-w-full max-h-full object-contain"
+            alt="Logo"
+            className="w-full h-full object-contain filter drop-shadow-lg brightness-110"
+            style={{ imageRendering: 'auto' }}
           />
         </div>
 
-        {/* Vertical separator */}
-        <div className="w-0.5 h-[200px] bg-white flex-shrink-0 mx-8" />
+        {/* Vertical Divider Line */}
+        <div className="w-px h-24 bg-white/20" />
 
-        {/* Title text block — larger typography for 13" */}
-        <div className="flex flex-col items-start text-left">
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 1 }}
-            className="text-[4rem] min-[1280px]:text-[4.5rem] font-bold uppercase tracking-tight text-white leading-tight"
+        {/* Institutional Typography - Refined Hierarchy */}
+        <div className="flex flex-col justify-center text-white text-left">
+          <h1
+            className="text-3xl font-bold tracking-[0.02em] uppercase leading-none"
+            style={{ fontFamily: "'Times New Roman', serif" }}
           >
             SAI VIDYA
-          </motion.p>
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.55, duration: 1 }}
-            className="text-[2rem] min-[1280px]:text-[2.25rem] font-bold uppercase tracking-tight text-white leading-tight mt-2"
+          </h1>
+          <h2
+            className="text-sm font-medium tracking-[0.3em] uppercase mt-2 opacity-90"
+            style={{ fontFamily: "Inter, sans-serif" }}
           >
             INSTITUTE OF TECHNOLOGY
-          </motion.p>
-          <div className="w-full h-0.5 bg-white mt-3 mb-3" style={{ minWidth: 'calc(100% + 12px)', marginLeft: '-6px' }} />
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.6, duration: 1 }}
-            className="text-xl min-[1280px]:text-2xl font-normal text-white tracking-wide"
+          </h2>
+
+          {/* Thin Underline */}
+          <div className="w-full h-px bg-white/20 mt-2 mb-2" />
+
+          <p
+            className="text-xs font-light italic tracking-[0.1em] opacity-80"
+            style={{ fontFamily: "'Times New Roman', serif" }}
           >
             Learn to lead
-          </motion.p>
+          </p>
         </div>
-      </div>
-
-      {/* Tap to wake hint — readable on 13" */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
-        className="absolute bottom-28 left-0 right-0 flex justify-center"
-      >
-        <motion.span
-          animate={{ opacity: [0.3, 0.7, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          className="text-base min-[1280px]:text-lg tracking-[0.25em] uppercase text-white/70 font-light"
-        >
-          {t('tapToWake')}
-        </motion.span>
       </motion.div>
 
-      {/* Decorative Lines — proportional for 13" */}
-      <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
-        <div className="h-px w-40 bg-white/10" />
-        <div className="text-xs tracking-[0.4em] uppercase text-white/40">
-          
-        </div>
-        <div className="h-px w-40 bg-white/10" />
+      {/* Top-Right: Intellectual Quote Accent */}
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 1, duration: 1.2 }}
+        className="absolute top-20 right-20 z-20 text-right max-w-lg"
+      >
+        <p
+          className="text-lg font-light italic leading-relaxed tracking-wide text-white/60"
+          style={{ fontFamily: "'Times New Roman', serif" }}
+        >
+          "Tomorrow's intelligence, engineered by today's minds.
+          <br />
+          Step closer to awaken CLARA"
+        </p>
+      </motion.div>
+
+      {/* Center Bottom: TAP TO WAKE */}
+      <div className="absolute bottom-20 left-0 right-0 z-20 flex flex-col items-center justify-center">
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 1, duration: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <motion.span
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -5, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            className="text-xl tracking-[0.5em] uppercase text-white font-light"
+          >
+            {t('tapToWake')}
+          </motion.span>
+          <div className="h-0.5 w-16 bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+        </motion.div>
       </div>
+
+      {/* Corner Accents - Optional refined grounding */}
+      <div className="absolute top-0 left-0 w-32 h-32 border-l border-t border-white/5 m-8 z-20 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-32 h-32 border-r border-b border-white/5 m-8 z-20 pointer-events-none" />
     </motion.div>
   );
 }
+

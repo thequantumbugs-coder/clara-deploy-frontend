@@ -25,9 +25,13 @@ if ($listeners) {
     }
 }
 
-$venvPython = Join-Path $ScriptDir ".venv\Scripts\python.exe"
+$venvPython = Join-Path $ScriptDir "backend\.venv\Scripts\python.exe"
 if (-not (Test-Path $venvPython)) {
-    Write-Error "Virtual env not found. Run: python -m venv .venv && .\.venv\Scripts\pip install -r backend\requirements.txt"
+    # Try one more location (root .venv)
+    $venvPython = Join-Path $ScriptDir ".venv\Scripts\python.exe"
+    if (-not (Test-Path $venvPython)) {
+        Write-Error "Virtual env not found. Run: python -m venv backend\.venv && .\backend\.venv\Scripts\pip install -r backend\requirements.txt"
+    }
 }
 
 Write-Host "Starting backend at http://0.0.0.0:$port ..."
