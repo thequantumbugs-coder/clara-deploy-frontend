@@ -1,33 +1,48 @@
-"""RAG retrieval: ChromaDB client and get_relevant_context for college knowledge."""
+"""RAG retrieval: PostgreSQL + pgvector and local embeddings for college knowledge."""
 
 import logging
-from typing import Optional
+import threading
+from typing import List
 
-from config import (
-    CHROMA_COLLECTION_NAME,
-    CHROMA_DB_PATH,
-    RAG_MAX_TOKENS,
-    RAG_TOP_K,
-)
+from config import RAG_MAX_TOKENS, RAG_TOP_K
+
+from db import get_document_count, get_similar_contents
 
 logger = logging.getLogger(__name__)
 
-_client: Optional["chromadb.PersistentClient"] = None
+_embedding_model = None
+_embedding_lock = threading.Lock()
+
+EMBEDDING_MODEL_NAME = "BAAI/bge-base-en"
+EMBEDDING_DIM = 768
 
 
-def get_chroma_client():
-    """Return a persistent ChromaDB client. Reuses a single instance."""
-    global _client
-    if _client is None:
-        import chromadb
-        _client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-    return _client
+def _get_embedding_model():
+    """Lazy-load the sentence-transformers model once. Thread-safe."""
+    global _embedding_model
+    with _embedding_lock:
+        if _embedding_model is None:
+            from sentence_transformers import SentenceTransformer
+            _embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        return _embedding_model
 
 
-def get_collection():
-    """Get or create the college_knowledge collection (uses ChromaDB default embedding)."""
-    client = get_chroma_client()
-    return client.get_or_create_collection(name=CHROMA_COLLECTION_NAME)
+def generate_embedding(text: str) -> List[float]:
+    """
+    Generate 768-dim embedding for text using local BAAI/bge-base-en.
+    Fully local; no network. Thread-safe. Raises on failure.
+    """
+    if not text or not text.strip():
+        raise ValueError("empty text")
+    model = _get_embedding_model()
+    with _embedding_lock:
+        vec = model.encode(text.strip(), normalize_embeddings=True)
+    return vec.tolist()
+
+
+def get_rag_document_count() -> int:
+    """Return number of documents in RAG store. Returns 0 on any error."""
+    return get_document_count()
 
 
 def get_relevant_context(
@@ -36,22 +51,19 @@ def get_relevant_context(
     max_tokens: int = RAG_MAX_TOKENS,
 ) -> str:
     """
-    Retrieve top-k most relevant chunks from ChromaDB for the query.
-    Returns concatenated chunk text, trimmed to max_tokens. Empty string on error or empty collection.
+    Retrieve top-k most relevant chunks from PostgreSQL for the query.
+    Returns concatenated chunk text, trimmed to max_tokens. Empty string on error or empty table.
     """
     if not (query or query.strip()):
         return ""
     query = query.strip()
     try:
-        collection = get_collection()
-        result = collection.query(query_texts=[query], n_results=top_k)
-        # result["documents"] is list of lists: one list per query, each item is a list of doc strings
-        docs = result.get("documents")
-        if not docs or not docs[0]:
-            logger.debug("RAG: no documents returned for query (collection may be empty or no matches)")
+        query_embedding = generate_embedding(query)
+        contents = get_similar_contents(query_embedding, top_k)
+        if not contents:
+            logger.debug("RAG: no documents returned for query (table may be empty or no matches)")
             return ""
-        chunks = docs[0]
-        combined = "\n\n".join(chunks)
+        combined = "\n\n".join(contents)
         return _trim_to_tokens(combined, max_tokens)
     except Exception as e:
         logger.warning("RAG retrieval failed: %s", e, exc_info=True)

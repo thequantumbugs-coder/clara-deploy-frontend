@@ -1,10 +1,10 @@
-# CLARA Kiosk — Baseline (Original / Current Structure)
+# CLARA Kiosk — Baseline (Current Structure)
 
-This document captures the **baseline** state of the project: structure, voice integration (Groq + Sarvam), RAG (college knowledge), backend/frontend connection, and how to run it. All E2E tests in `frontend/e2e/chat-flow.spec.ts` define accepted behavior.
+This document captures the **baseline** state of the project: structure, voice integration (Groq + Sarvam), RAG (college knowledge via PostgreSQL + pgvector), backend/frontend connection, and how to run it. All E2E tests in `frontend/e2e/chat-flow.spec.ts` define accepted behavior.
 
-**Date:** 2026-02-21
+**Date:** 2026-02-26
 
-**Summary of this baseline:** Single default port 6969 (backend + frontend fallback + .env.example). Backend started via `start-backend.ps1` (Windows) or `run-both.sh` (Bash); frontend after. Connection banner with /health and restart-frontend hint. user_message flow: RAG first, then Groq; if Groq fails, reply is RAG fallback text or generic error. RAG can return empty (empty collection, ChromaDB error, or language mismatch). Groq optional for now; RAG fallback shows college info when context is non-empty.
+**Summary of this baseline:** Single default port 6969 (backend + frontend fallback + .env.example). RAG uses **local PostgreSQL + pgvector** (Docker) and **local embeddings** (sentence-transformers, BAAI/bge-base-en); no ChromaDB. Backend started via `start-backend.ps1` (Windows) or `run-both.sh` (Bash); PostgreSQL via `docker compose up -d`; frontend after. Connection banner with /health and restart-frontend hint. user_message flow: RAG first (PostgreSQL vector search), then Groq; if Groq fails, reply is RAG fallback text or generic error. RAG can return empty (empty table, DB unreachable, or exception). Groq optional for now; RAG fallback shows college info when context is non-empty.
 
 ---
 
@@ -126,17 +126,18 @@ frontend/
 
 ## College knowledge (RAG)
 
-Clara answers using relevant parts of `college_knowledge.txt`. The file is chunked and embedded into ChromaDB; at query time the backend retrieves the top-k chunks and injects them into the LLM prompt.
+Clara answers using relevant parts of `college_knowledge.txt`. The file is chunked and embedded **locally** (sentence-transformers, BAAI/bge-base-en) and stored in **PostgreSQL with pgvector**; at query time the backend retrieves the top-k chunks by vector similarity and injects them into the LLM prompt. All data stays on the machine; no external embedding API.
 
-**user_message flow (backend):** (1) **RAG first:** `get_relevant_context(text)` returns context (or empty string if collection empty, query fails, or ChromaDB errors). (2) **Groq:** System prompt includes context when non-empty; LLM reply is `reply_text`. (3) **If Groq fails or no API key:** If `reply_text` is empty, fallback = "Based on our college information: " + trimmed context when context is non-empty; otherwise the user sees "I'm sorry, I couldn't reach the assistant right now. Please check your Groq API key in .env and try again." So **RAG is always run**; if RAG returns empty (ChromaDB/collection issue), and Groq also fails, the user gets the generic error instead of college content.
+**user_message flow (backend):** (1) **RAG first:** `get_relevant_context(text)` returns context (or empty string if table empty, DB unreachable, or exception). (2) **Groq:** System prompt includes context when non-empty; LLM reply is `reply_text`. (3) **If Groq fails or no API key:** If `reply_text` is empty, fallback = "Based on our college information: " + trimmed context when context is non-empty; otherwise the user sees "I'm sorry, I couldn't reach the assistant right now. Please check your Groq API key in .env and try again." So **RAG is always run**; if RAG returns empty (PostgreSQL down or empty table), and Groq also fails, the user gets the generic error instead of college content.
 
-- **Run ingestion once** after cloning or when you update `college_knowledge.txt`:
-  - From project root: `python -m backend.ingest_college_knowledge`
-  - Or from `backend/`: `python ingest_college_knowledge.py`
-  - Use **Python 3.10–3.12** for ingestion (ChromaDB may fail on Python 3.14+). If needed: `py -3.12 -m venv .venv312`, then `.venv312\Scripts\pip install -r backend/requirements.txt`, then `.venv312\Scripts\python -m backend.ingest_college_knowledge`.
-- **Config (optional):** In `.env` you can set `COLLEGE_KNOWLEDGE_PATH` (default: `college_knowledge.txt` at project root), `CHROMA_DB_PATH` (default: `./chroma_db`), `CHROMA_COLLECTION_NAME` (default: `college_knowledge`), and `RAG_TOP_K` (default: 5 chunks per query). The ChromaDB directory is gitignored.
-- **Verify college Q&A:** After starting backend and frontend, ask Clara e.g. "Where is SVIT located?" or "What is the CSE intake?" and confirm the answer matches `college_knowledge.txt`. If the backend logs "RAG: college_knowledge collection is empty" at startup, run the ingestion command above first.
-- **RAG returning empty:** If you see "check your Groq API key" even when you expect college info, RAG context is empty. Check backend logs for "RAG context: ok (N chars)" vs "RAG context: empty". Causes: (1) Collection empty — run ingestion. (2) ChromaDB error at startup (e.g. "could not check collection: unable to infer type...") — use Python 3.10–3.12 for backend/ingestion or fix ChromaDB. (3) Query language (e.g. Kannada) may not match English chunks well with default embeddings.
+- **PostgreSQL (one-time setup):** Start the database: `docker compose up -d`. Set `POSTGRES_PASSWORD` in `.env` (required). Apply schema once: run `backend/scripts/init_pgvector.sql` (see `backend/POSTGRES_SETUP.md`).
+- **Run ingestion** after schema init or when you update `college_knowledge.txt`:
+  - From project root: `python -m backend.ingest_college_knowledge_pg`
+  - Or from `backend/`: `python ingest_college_knowledge_pg.py`
+  - Uses same chunking (700 chars, 80 overlap) and local embeddings; inserts into `college_knowledge` table.
+- **Config (optional):** In `.env`: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (required), `COLLEGE_KNOWLEDGE_PATH` (default `college_knowledge.txt`), `RAG_TOP_K` (default 5). See `backend/POSTGRES_SETUP.md` for Ubuntu and env details.
+- **Verify college Q&A:** After starting PostgreSQL, backend, and frontend, ask Clara e.g. "Where is SVIT located?" or "What is the CSE intake?" and confirm the answer matches `college_knowledge.txt`. If the backend logs "RAG: college_knowledge table is empty" at startup, run the ingestion command above.
+- **RAG returning empty:** If you see "check your Groq API key" even when you expect college info, RAG context is empty. Check backend logs for "RAG context: ok (N chars)" vs "RAG context: empty". Causes: (1) Table empty — run ingestion. (2) PostgreSQL not running or wrong credentials — start Docker and set `POSTGRES_PASSWORD`. (3) Query language (e.g. Kannada) may not match English chunks well with default embeddings.
 
 ---
 
@@ -157,15 +158,20 @@ Clara answers using relevant parts of `college_knowledge.txt`. The file is chunk
 
 ---
 
-## Key files (original state checklist)
+## Key files (current state checklist)
 
 | Path | Purpose |
 |------|--------|
-| `backend/main.py` | WebSocket handler; session (cached_greeting_audio); language_selected (preload TTS); conversation_started (cache or fallback); user_message: RAG → Groq → fallback ("Based on our college information" or Groq error); tts_to_base64; startup log WebSocket URL |
-| `backend/config.py` | PORT (default 6969), TARGET_LANGUAGE_CODES, LANGUAGE_NAME_TO_CODE_KEY, GROQ/SARVAM, RAG_*, CHROMA_* |
-| `backend/rag.py` | get_collection, get_relevant_context; returns "" on error or empty collection |
+| `backend/main.py` | WebSocket handler; session (cached_greeting_audio); language_selected (preload TTS); conversation_started (cache or fallback); user_message: RAG → Groq → fallback ("Based on our college information" or Groq error); tts_to_base64; startup log WebSocket URL; lifespan uses get_rag_document_count() |
+| `backend/config.py` | PORT (default 6969), TARGET_LANGUAGE_CODES, LANGUAGE_NAME_TO_CODE_KEY, GROQ/SARVAM, RAG_*, POSTGRES_* |
+| `backend/rag.py` | get_relevant_context, get_rag_document_count, generate_embedding (local BAAI/bge-base-en), _trim_to_tokens; returns "" on error or empty table |
+| `backend/db.py` | PostgreSQL connection pool; get_similar_contents, get_document_count, insert_college_chunk, truncate_college_knowledge |
+| `backend/ingest_college_knowledge_pg.py` | Ingest college_knowledge.txt into PostgreSQL: chunk, local embeddings, INSERT |
+| `backend/scripts/init_pgvector.sql` | CREATE EXTENSION vector; CREATE TABLE college_knowledge; CREATE INDEX ivfflat |
 | `backend/greetings.py` | GREETINGS by language |
-| `backend/requirements-voice.txt` | Voice-only deps |
+| `backend/POSTGRES_SETUP.md` | PostgreSQL + pgvector env vars and Ubuntu setup |
+| `backend/requirements.txt` | Full stack (includes psycopg2-binary, pgvector, sentence-transformers, torch; no chromadb) |
+| `docker-compose.yml` | PostgreSQL 15 + pgvector; clara-postgres, 127.0.0.1:5432, POSTGRES_PASSWORD from env |
 | `start-backend.ps1` | Windows: read PORT from .env, free port ($procId), start backend |
 | `run-both.sh` | Bash: read PORT from .env, start backend then frontend |
 | `frontend/src/App.tsx` | WS_URL fallback 6969; connection banner with start commands, /health link, restart frontend hint |
@@ -173,7 +179,7 @@ Clara answers using relevant parts of `college_knowledge.txt`. The file is chunk
 | `frontend/src/components/LanguageSelect.tsx` | onSelect(language: Language) |
 | `frontend/src/components/ChatScreen.tsx` | payload.audioBase64 playback; isPlayingBackendAudio; effectiveSpeaking; recognitionError + payload error; tap guard |
 | `frontend/src/hooks/useSpeechRecognition.ts` | startListening → user_message with transcript; onError; double-start guard |
-| `.env.example` | Env template; PORT=6969 |
+| `.env.example` | Env template; PORT=6969; POSTGRES_* (POSTGRES_PASSWORD required for RAG) |
 | `frontend/.env.local` | VITE_WS_URL=ws://localhost:6969/ws/clara (match PORT) |
 
 ---

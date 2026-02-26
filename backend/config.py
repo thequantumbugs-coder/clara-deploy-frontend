@@ -30,7 +30,6 @@ AUDIO_INPUT_DEVICE_INDEX = int(_audio_idx) if _audio_idx.isdigit() else None
 
 # Paths
 FACES_DB_PATH = os.getenv("FACES_DB_PATH", str(BASE_DIR / "config" / "faces.dat"))
-CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", str(BASE_DIR / "chroma_db"))
 UI_CONFIG_PATH = os.getenv("UI_CONFIG_PATH", str(BASE_DIR / "config" / "ui_config.json"))
 TEMP_DIR = os.getenv("TEMP_DIR", str(BASE_DIR / "temp"))
 
@@ -38,9 +37,15 @@ TEMP_DIR = os.getenv("TEMP_DIR", str(BASE_DIR / "temp"))
 RAG_MAX_TOKENS = int(os.getenv("RAG_MAX_TOKENS", "6000"))
 # Must be a valid Groq chat model id; if API returns 404, set in .env (see https://console.groq.com/docs/models)
 RAG_MODEL = os.getenv("RAG_MODEL", "llama-3.1-8b-instant")
-CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "college_knowledge")
 COLLEGE_KNOWLEDGE_PATH = os.getenv("COLLEGE_KNOWLEDGE_PATH", str(BASE_DIR / "college_knowledge.txt"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+
+# PostgreSQL + pgvector (RAG storage)
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "127.0.0.1")
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_DB = os.getenv("POSTGRES_DB", "clara_db")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "clara_user")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
 
 # State Machine Configuration
 INACTIVITY_TIMEOUT = float(os.getenv("INACTIVITY_TIMEOUT", "20.0"))

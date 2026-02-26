@@ -1,4 +1,4 @@
-# Voice integration only (no opencv/whisper/chromadb). Use requirements.txt for full stack.
+# Voice integration only (no opencv/whisper; RAG uses PostgreSQL + pgvector). Use requirements.txt for full stack.
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 websockets>=12.0

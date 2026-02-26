@@ -29,7 +29,7 @@ from config import (
     LANGUAGE_NAME_TO_CODE_KEY,
 )
 from greetings import GREETINGS
-from rag import get_collection, get_relevant_context
+from rag import get_relevant_context, get_rag_document_count
 from core.audio_pipeline import record_audio
 from stt import wav_to_transcript
 
@@ -201,18 +201,17 @@ async def process_user_text_and_reply(session: dict, text: str, websocket: WebSo
 
 @asynccontextmanager
 async def lifespan(app: object):
-    """Startup: log RAG collection document count. Shutdown: nothing."""
+    """Startup: log RAG document count. Shutdown: nothing."""
     try:
-        coll = get_collection()
-        n = coll.count()
+        n = get_rag_document_count()
         if n == 0:
             logger.warning(
-                "RAG: college_knowledge collection is empty. Run: python -m backend.ingest_college_knowledge"
+                "RAG: college_knowledge table is empty. Run: python -m backend.ingest_college_knowledge_pg"
             )
         else:
             logger.info("RAG: college_knowledge has %s documents.", n)
     except Exception as e:
-        logger.warning("RAG: could not check collection: %s", e)
+        logger.warning("RAG: could not check database: %s", e)
     yield
 
 
