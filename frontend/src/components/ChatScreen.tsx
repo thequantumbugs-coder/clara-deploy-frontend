@@ -22,6 +22,7 @@ import ImageCard from './chat/ImageCard';
 import VoiceOrb from './VoiceOrb';
 import BackgroundParticles from './BackgroundParticles';
 import { useMessageAnimation } from '../hooks/useAnimeAnimations';
+import { isCollegeIntent } from '../utils/intentClassifier';
 
 const GREETING_TTS_DURATION_MS = 4500;
 
@@ -53,10 +54,28 @@ export default function ChatScreen({
   const [messages, setMessages] = useState<ChatMessage[]>(() => []);
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [isPlayingBackendAudio, setIsPlayingBackendAudio] = useState(false);
+  const [isSplit, setIsSplit] = useState(false);
   const userRequestedListeningRef = useRef(false);
   const lastPlayedAudioRef = useRef<string | null>(null);
   const isPlayingRef = useRef(false);
   const hasStartedRef = useRef(false);
+
+  // Trigger layout split/fullscreen based on intent of the last user message
+  useEffect(() => {
+    const userMessages = messages.filter(m => m.role === 'user');
+    if (userMessages.length > 0) {
+      const lastUserMsg = userMessages[userMessages.length - 1];
+      const intentIsCollege = isCollegeIntent(lastUserMsg.text);
+
+      // Update split mode based on detected intent
+      if (isSplit !== intentIsCollege) {
+        setIsSplit(intentIsCollege);
+      }
+    } else {
+      // Default to fullscreen if no user messages yet
+      setIsSplit(false);
+    }
+  }, [messages, isSplit]);
 
   const addSystemMessage = useCallback((text: string) => {
     const sys: ChatMessage = { id: `sys-${Date.now()}`, role: 'system', text };
@@ -153,17 +172,29 @@ export default function ChatScreen({
 
   return (
     <div className="chat-screen-premium">
-      {/* 70% Left: Cinematic Visual */}
-      <section className="kiosk-visual-side">
-        <div className="kiosk-visual-overlay" />
-        {/* Optional svit logo or branding can go here but keeping it clean */}
-        <div className="absolute top-8 left-8 p-4">
-          {/* Branding can go here if needed */}
-        </div>
-      </section>
+      {/* 70% Left: Cinematic Visual (Morphing) */}
+      <AnimatePresence>
+        {isSplit && (
+          <motion.section
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: '70%', opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+            className="kiosk-visual-side"
+          >
+            <div className="kiosk-visual-overlay" />
+          </motion.section>
+        )}
+      </AnimatePresence>
 
-      {/* 30% Right: Minimal Interaction Panel */}
-      <aside className="kiosk-interaction-panel">
+      {/* Right/Main: Interaction Panel (Width animates 100% -> 30%) */}
+      <motion.aside
+        layout
+        initial={{ width: '100%' }}
+        animate={{ width: isSplit ? '30%' : '100%' }}
+        transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+        className="kiosk-interaction-panel"
+      >
         <header className="chat-header-minimal">
           <div className="kiosk-header-title">CLARA</div>
           <button
@@ -210,7 +241,7 @@ export default function ChatScreen({
             {propIsListening ? t('listening') : 'Tap to speak'}
           </div>
         </div>
-      </aside>
+      </motion.aside>
     </div>
   );
 }

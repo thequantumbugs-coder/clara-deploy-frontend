@@ -18,7 +18,7 @@ export default function VoiceOrb({ state, onTap, amplitude = 0, label }: VoiceOr
         onTap={onTap}
       />
       {label && (
-        <label className="mt-2 text-xs uppercase tracking-widest text-emerald-400 font-medium animate-pulse">
+        <label className="mt-2 text-xs uppercase tracking-widest text-white/40 font-medium animate-pulse">
           {label}
         </label>
       )}

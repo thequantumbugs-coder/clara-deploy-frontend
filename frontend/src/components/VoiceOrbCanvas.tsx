@@ -13,6 +13,7 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const particlesRef = useRef<THREE.Points | null>(null);
   const glowLightRef = useRef<THREE.PointLight | null>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -85,53 +86,72 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
 
     let rafId: number;
     const targetColor = new THREE.Color();
-    const currentColor = new THREE.Color(0xcccccc);
+    const currentColor = new THREE.Color(0xdddddd); // Start white/gray
+    let lastTime = Date.now() * 0.001;
 
     const renderLoop = () => {
       rafId = requestAnimationFrame(renderLoop);
 
-      const time = Date.now() * 0.001;
-      const isHighEnergy = state === 'listening' || state === 'speaking';
+      const now = Date.now() * 0.001;
+      const deltaTime = now - lastTime;
+      lastTime = now;
 
-      // 1. Color State Management
+      const isHighEnergy = state === 'listening' || state === 'speaking';
+      const activeAmplitude = amplitude > 0.01 ? amplitude : 0;
+
+      // 1. Color State Management (Smooth transitions 200-300ms)
       if (isHighEnergy) {
-        targetColor.setHex(0x2dd4bf); // Soft Cyan/Teal
+        // Cyan/Teal gradient feel
+        targetColor.setHex(0x00f2ff);
       } else if (state === 'processing') {
         targetColor.setHex(0xffffff);
       } else {
-        targetColor.setHex(0xaaaaaa); // Neutral Grayscale
+        targetColor.setHex(0xcccccc); // Neutral Bright Grayscale
       }
-      currentColor.lerp(targetColor, 0.05);
+      // Faster lerp for reactivity (~0.1 per frame at 60fps is ~160ms)
+      currentColor.lerp(targetColor, isHighEnergy ? 0.15 : 0.05);
 
-      // 2. Breathing and Scale
-      const baseScale = isHighEnergy ? 1.15 : 1.0;
-      const breatheSpeed = isHighEnergy ? 3 : 1.5;
-      const breatheAmount = isHighEnergy ? 0.05 : 0.03;
-      const pulse = baseScale + Math.sin(time * breatheSpeed) * breatheAmount;
-      particles.scale.set(pulse, pulse, pulse);
+      // 2. Breathing and Reactive Scale (Idle: 0.95 -> 1.05)
+      const breatheSpeed = isHighEnergy ? 4 : 1.2;
+      const breatheAmount = isHighEnergy ? 0.04 : 0.05;
+      const idleBase = 1.0;
+      const pulse = idleBase + Math.sin(now * breatheSpeed) * breatheAmount;
+
+      // Map amplitude to scale: 1.0 -> 1.4 range
+      const amplitudeScale = 1.0 + (activeAmplitude * 0.4);
+      const finalScale = pulse * amplitudeScale;
+
+      particles.scale.set(finalScale, finalScale, finalScale);
 
       // 3. Particle Motion
       const posAttr = geometry.attributes.position;
       const colAttr = geometry.attributes.color;
-      const speedMult = isHighEnergy ? (1 + amplitude * 3) : 1;
+
+      // Subtle particle drift + vibration when active
+      const speedMult = isHighEnergy ? (1.5 + activeAmplitude * 5) : 1.0;
+      const vibration = isHighEnergy ? (activeAmplitude * 0.01) : 0;
 
       for (let i = 0; i < particleCount; i++) {
-        // Slow rotation/drift inside the sphere
         const px = posAttr.getX(i);
         const py = posAttr.getY(i);
         const pz = posAttr.getZ(i);
 
-        // Apply velocities and some noise
-        posAttr.setX(i, px + velocities[i * 3] * speedMult);
-        posAttr.setY(i, py + velocities[i * 3 + 1] * speedMult);
-        posAttr.setZ(i, pz + velocities[i * 3 + 2] * speedMult);
+        // Apply velocities + vibration
+        const vx = velocities[i * 3] * speedMult + (Math.random() - 0.5) * vibration;
+        const vy = velocities[i * 3 + 1] * speedMult + (Math.random() - 0.5) * vibration;
+        const vz = velocities[i * 3 + 2] * speedMult + (Math.random() - 0.5) * vibration;
 
-        // Containment: wrap particles back if they drift too far
+        posAttr.setX(i, px + vx);
+        posAttr.setY(i, py + vy);
+        posAttr.setZ(i, pz + vz);
+
+        // Elastic containment
         const dist = Math.sqrt(px * px + py * py + pz * pz);
-        if (dist > 0.9) {
-          posAttr.setX(i, px * 0.95);
-          posAttr.setY(i, py * 0.95);
-          posAttr.setZ(i, pz * 0.95);
+        if (dist > 1.0) {
+          const factor = 0.98;
+          posAttr.setX(i, px * factor);
+          posAttr.setY(i, py * factor);
+          posAttr.setZ(i, pz * factor);
         }
 
         // Color update
@@ -142,7 +162,14 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
 
       // 4. Glow Logic
       glowLight.color.copy(currentColor);
-      glowLight.intensity = isHighEnergy ? (2 + amplitude * 5) : (1 + Math.sin(time) * 0.5);
+      // Intensity: higher during voice + dynamic amplitude mapping
+      const baseIntensity = isHighEnergy ? 2.5 : 1.2;
+      glowLight.intensity = baseIntensity + (activeAmplitude * 6) + (Math.sin(now * 2) * 0.3);
+
+      // 5. External Shadow Reactivity
+      if (shadowRef.current) {
+        shadowRef.current.style.backgroundColor = `rgba(${Math.floor(currentColor.r * 255)}, ${Math.floor(currentColor.g * 255)}, ${Math.floor(currentColor.b * 255)}, 0.15)`;
+      }
 
       renderer.render(scene, camera);
     };
@@ -155,7 +182,7 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
       geometry.dispose();
       material.dispose();
     };
-  }, [state]);
+  }, [state, amplitude]);
 
   return (
     <div
@@ -167,8 +194,11 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
         height: 200,
       }}
     >
-      {/* Soft shadow base - cleaner without the green tint */}
-      <div className="absolute w-32 h-6 bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/5 blur-xl pointer-events-none" />
+      {/* Soft atmospheric glow base - updated directly in raf for performance */}
+      <div
+        ref={shadowRef}
+        className="absolute w-32 h-6 bottom-4 left-1/2 -translate-x-1/2 rounded-full blur-2xl pointer-events-none transition-colors duration-300"
+      />
     </div>
   );
 }
