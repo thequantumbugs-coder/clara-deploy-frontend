@@ -4,9 +4,14 @@ import { Home } from 'lucide-react';
 import { useLanguage, Language } from '../context/LanguageContext';
 
 const CAMPUS_IMAGES = [
-  '/assets/campus1.png',
-  '/assets/campus2.png',
-  '/assets/campus3.png',
+  '/assets/campus_hd_1.jpg',
+  '/assets/campus_hd_2.jpg',
+  '/assets/campus_hd_3.jpg',
+  '/assets/campus_hd_4.jpg',
+  '/assets/campus_hd_5.jpg',
+  '/assets/campus_hd_6.jpg',
+  '/assets/campus_hd_7.jpg',
+  '/assets/campus_hd_8.jpg',
 ];
 
 const LANGUAGES: { name: Language; label: string }[] = [

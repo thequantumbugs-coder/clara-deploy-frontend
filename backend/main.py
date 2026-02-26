@@ -42,7 +42,6 @@ def tts_to_base64(text: str, language_code: str) -> str | None:
         return None
     try:
         from sarvamai import SarvamAI
-        from sarvamai.play import save as sarvam_save
 
         client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
         audio = client.text_to_speech.convert(
@@ -50,18 +49,49 @@ def tts_to_base64(text: str, language_code: str) -> str | None:
             model="bulbul:v3",
             target_language_code=language_code,
         )
+        
+        # Manually concatenate audio chunks and write to temp file
+        import base64 as b64
+        combined_audio_data = b""
+        for i, chunk in enumerate(audio.audios):
+            chunk_data = b64.b64decode(chunk)
+            if i == 0:
+                combined_audio_data = chunk_data
+            else:
+                data_pos = chunk_data.find(b"data")
+                if data_pos != -1:
+                    combined_audio_data += chunk_data[data_pos + 8:]
+
+        # Update WAV header for multiple chunks
+        if len(audio.audios) > 1:
+            total_size = len(combined_audio_data) - 8
+            combined_audio_data = (
+                combined_audio_data[:4]
+                + total_size.to_bytes(4, "little")
+                + combined_audio_data[8:]
+            )
+            data_pos = combined_audio_data.find(b"data")
+            if data_pos != -1:
+                data_size = len(combined_audio_data) - data_pos - 8
+                combined_audio_data = (
+                    combined_audio_data[:data_pos + 4]
+                    + data_size.to_bytes(4, "little")
+                    + combined_audio_data[data_pos + 8:]
+                )
+
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(combined_audio_data)
             tmp_path = f.name
+        
+        with open(tmp_path, "rb") as rf:
+            data = rf.read()
+        
         try:
-            sarvam_save(audio, tmp_path)
-            with open(tmp_path, "rb") as rf:
-                data = rf.read()
-            return base64.b64encode(data).decode("utf-8")
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+            
+        return base64.b64encode(data).decode("utf-8")
     except Exception as e:
         logger.exception("TTS failed: %s", e)
         return None
@@ -101,12 +131,17 @@ async def process_user_text_and_reply(session: dict, text: str, websocket: WebSo
             if GROQ_API_KEY:
                 from groq import Groq
                 client = Groq(api_key=GROQ_API_KEY)
+                
+                # Build conversation history for LLM context
+                messages = [{"role": "system", "content": system_prompt}]
+                for m in session.get("messages", []):
+                    role = "assistant" if m.get("role") == "clara" else "user"
+                    messages.append({"role": role, "content": m.get("text", "")})
+                messages.append({"role": "user", "content": text})
+
                 completion = client.chat.completions.create(
                     model=RAG_MODEL,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": text},
-                    ],
+                    messages=messages,
                 )
                 reply_text = (completion.choices[0].message.content or "").strip()
             else:
@@ -140,7 +175,7 @@ async def process_user_text_and_reply(session: dict, text: str, websocket: WebSo
         session["messages"] = session.get("messages", []) + [user_msg, assistant_msg]
         audio_b64 = tts_to_base64(reply_text, lang_code)
         payload = {
-            "messages": [user_msg, assistant_msg],
+            "messages": session["messages"],
             "isProcessing": False,
             "isSpeaking": bool(audio_b64),
         }
@@ -239,7 +274,11 @@ async def websocket_clara(websocket: WebSocket):
                             audio_b64 = tts_to_base64(greeting_text, session["language_code"])
                             if audio_b64:
                                 session["cached_greeting_audio"] = audio_b64
-                                session["cached_greeting_message"] = {"id": "greeting", "role": "clara", "text": greeting_text}
+                                greeting_msg = {"id": "greeting", "role": "clara", "text": greeting_text}
+                                session["cached_greeting_message"] = greeting_msg
+                                # Persist greeting in session messages
+                                if not session.get("messages"):
+                                    session["messages"] = [greeting_msg]
                         except Exception as e:
                             logger.exception("Preload greeting TTS failed: %s", e)
                     await websocket.send_json({"state": 5, "payload": None})  # Chat after language
@@ -260,8 +299,10 @@ async def websocket_clara(websocket: WebSocket):
                     else:
                         lang_code = session.get("language_code") or TARGET_LANGUAGE_CODES["en"]
                         audio_b64 = tts_to_base64(greeting_text, lang_code)
+                        if not session.get("messages"):
+                            session["messages"] = [greeting_message]
                         payload = {
-                            "messages": [greeting_message],
+                            "messages": session["messages"],
                             "isSpeaking": bool(audio_b64),
                         }
                         if audio_b64:

@@ -153,22 +153,26 @@ export default function ChatScreen({
 
   return (
     <div className="chat-screen-premium">
-      {/* Background Layer */}
-      <div className="chat-bg-college" />
-      <div className="chat-bg-overlay" />
-      <BackgroundParticles />
+      {/* 70% Left: Cinematic Visual */}
+      <section className="kiosk-visual-side">
+        <div className="kiosk-visual-overlay" />
+        {/* Optional svit logo or branding can go here but keeping it clean */}
+        <div className="absolute top-8 left-8 p-4">
+          {/* Branding can go here if needed */}
+        </div>
+      </section>
 
-      {/* Main Glass Panel */}
-      <div className="chat-panel-glass">
+      {/* 30% Right: Minimal Interaction Panel */}
+      <aside className="kiosk-interaction-panel">
         <header className="chat-header-minimal">
+          <div className="kiosk-header-title">CLARA</div>
           <button
             type="button"
             onClick={onBack}
-            className="p-2 -ml-2 rounded-full hover:bg-white/5 transition-colors"
+            className="p-2 -mr-2 rounded-full hover:bg-white/5 transition-colors"
           >
-            <ArrowLeft className="w-6 h-6 text-white/60" />
+            <ArrowLeft className="w-5 h-5 text-white/40" />
           </button>
-          {/* Header branding removed as requested */}
         </header>
 
         <div ref={scrollRef} className="chat-messages-scroll no-scrollbar">
@@ -181,19 +185,18 @@ export default function ChatScreen({
           </AnimatePresence>
         </div>
 
-        {/* Voice Orb positioned at bottom as requested */}
+        {/* Interaction controls at bottom of panel */}
         <div className="voice-visualizer-container">
           <VoiceOrb
             state={orbState}
             amplitude={voiceAnalyser.smoothedRms}
             onTap={handleOrbTap}
-            label={propIsListening ? t('listening') : undefined}
           />
+          <div className="kiosk-interaction-hint">
+            {propIsListening ? t('listening') : 'Tap to speak'}
+          </div>
         </div>
-      </div>
-
-      {/* Ambient glow at bottom center */}
-      <div className="chat-panel-glow" />
+      </aside>
     </div>
   );
 }
@@ -203,7 +206,7 @@ function MessageWrapper({ msg, propIsListening, t }: { msg: ChatMessage; propIsL
   const itemRef = useMessageAnimation(role === 'user' ? 'user' : 'clara');
 
   return (
-    <div ref={itemRef} className="flex flex-col w-full opacity-0">
+    <div ref={itemRef} className={`opacity-0 ${role === 'user' ? 'kiosk-msg-user' : 'kiosk-msg-clara'}`}>
       {isSystemMessage(msg) ? (
         <SystemBubble message={msg} />
       ) : isCollegeBriefMessage(msg) ? (
@@ -216,9 +219,12 @@ function MessageWrapper({ msg, propIsListening, t }: { msg: ChatMessage; propIsL
           listeningLabel={propIsListening ? t('listening') : undefined}
         />
       ) : isTextMessage(msg) ? (
-        <div className={role === 'user' ? 'bubble-glass-user' : 'bubble-glass-clara'}>
-          {msg.text}
-        </div>
+        <>
+          <span className="kiosk-msg-label">{role === 'clara' ? 'CLARA' : 'Guest'}</span>
+          <div className="kiosk-msg-text">
+            {msg.text}
+          </div>
+        </>
       ) : null}
     </div>
   );
