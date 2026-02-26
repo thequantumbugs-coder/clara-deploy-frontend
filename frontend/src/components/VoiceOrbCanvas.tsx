@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { animate } from 'animejs';
 import type { OrbState } from '../types/chat';
 
 interface VoiceOrbCanvasProps {
@@ -12,26 +11,21 @@ interface VoiceOrbCanvasProps {
 export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-
-  // Refs for animation
-  const groupRef = useRef<THREE.Group | null>(null);
-  const diskRef = useRef<THREE.Mesh | null>(null);
-  const lensRef = useRef<THREE.Mesh | null>(null);
-  const shadowRef = useRef<THREE.Mesh | null>(null);
+  const particlesRef = useRef<THREE.Points | null>(null);
   const glowLightRef = useRef<THREE.PointLight | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 1. Clean up
+    // Cleanup
     while (containerRef.current.firstChild) {
       containerRef.current.removeChild(containerRef.current.firstChild);
     }
 
-    const size = 160;
+    const size = 200; // Increased size for better presence
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
-    camera.position.z = 5;
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.z = 4;
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -43,141 +37,112 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    const group = new THREE.Group();
-    groupRef.current = group;
-    scene.add(group);
+    // Particle Configuration
+    const particleCount = 2000;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
 
-    // FIXED RADIUM GREEN - No shifts allowed
-    const PURE_RADIUM = 0x00ff78;
+    for (let i = 0; i < particleCount; i++) {
+      // Spherical distribution
+      const r = 0.8 * Math.pow(Math.random(), 0.5);
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
 
-    // 1. EVENT HORIZON
-    const sphereGeo = new THREE.SphereGeometry(0.8, 64, 64);
-    const sphereMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    const shadow = new THREE.Mesh(sphereGeo, sphereMat);
-    shadowRef.current = shadow;
-    group.add(shadow);
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
 
-    // 2. PHOTON RING - STRICT GREEN
-    const ringGeo = new THREE.TorusGeometry(0.82, 0.012, 16, 100);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: PURE_RADIUM,
+      // Random slow drift velocities
+      velocities[i * 3] = (Math.random() - 0.5) * 0.01;
+      velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.01;
+      velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.01;
+
+      // Initial grayscale
+      colors[i * 3] = colors[i * 3 + 1] = colors[i * 3 + 2] = 0.8;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+      size: 0.025,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending
-    });
-    const photonRing = new THREE.Mesh(ringGeo, ringMat);
-    group.add(photonRing);
-
-    // 3. MAIN ACCRETION DISK - STRICT GREEN
-    const diskGeo = new THREE.TorusGeometry(1.2, 0.1, 16, 100);
-    const diskMat = new THREE.MeshStandardMaterial({
-      color: PURE_RADIUM,
-      transparent: true,
-      opacity: 0.7,
-      emissive: PURE_RADIUM,
-      emissiveIntensity: 3.5,
+      opacity: 0.8,
       blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide
     });
-    const accretionDisk = new THREE.Mesh(diskGeo, diskMat);
-    accretionDisk.rotation.x = Math.PI / 2.1;
-    diskRef.current = accretionDisk;
-    group.add(accretionDisk);
 
-    // 4. LENSING DISK - STRICT GREEN
-    const lensGeo = new THREE.TorusGeometry(1.05, 0.07, 16, 100);
-    const lensMat = new THREE.MeshStandardMaterial({
-      color: PURE_RADIUM,
-      transparent: true,
-      opacity: 0.5,
-      emissive: PURE_RADIUM,
-      emissiveIntensity: 2.5,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide
-    });
-    const lensingRing = new THREE.Mesh(lensGeo, lensMat);
-    lensRef.current = lensingRing;
-    group.add(lensingRing);
+    const particles = new THREE.Points(geometry, material);
+    particlesRef.current = particles;
+    scene.add(particles);
 
-    // 5. EXTERNAL VOLUMETRIC GLOW - STRICT GREEN
-    const glowGeo = new THREE.SphereGeometry(1.4, 32, 32);
-    const glowMat = new THREE.MeshStandardMaterial({
-      color: PURE_RADIUM,
-      transparent: true,
-      opacity: 0.18,
-      side: THREE.BackSide,
-      blending: THREE.AdditiveBlending
-    });
-    const glow = new THREE.Mesh(glowGeo, glowMat);
-    group.add(glow);
-
-    // LIGHTING - STRICT GREEN
-    const glowLight = new THREE.PointLight(PURE_RADIUM, 3, 7);
-    glowLight.position.set(0, 0, 1.2);
+    // Inner Glow Light
+    const glowLight = new THREE.PointLight(0xffffff, 1, 5);
     glowLightRef.current = glowLight;
     scene.add(glowLight);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
-    scene.add(ambient);
-
     let rafId: number;
+    const targetColor = new THREE.Color();
+    const currentColor = new THREE.Color(0xcccccc);
+
     const renderLoop = () => {
       rafId = requestAnimationFrame(renderLoop);
 
-      if (group && accretionDisk && lensingRing) {
-        accretionDisk.rotation.z += 0.012;
-        lensingRing.rotation.z -= 0.008;
+      const time = Date.now() * 0.001;
+      const isHighEnergy = state === 'listening' || state === 'speaking';
 
-        group.rotation.x = Math.sin(Date.now() * 0.0005) * 0.1;
-        group.rotation.y = Math.cos(Date.now() * 0.0005) * 0.1;
-
-        if (state === 'idle' || state === 'off') {
-          // VERY calm idle
-          const t = Date.now() * 0.0008;
-          const pulse = 1 + Math.sin(t) * 0.02;
-          shadow.scale.set(pulse, pulse, pulse);
-          accretionDisk.scale.set(pulse, pulse, pulse);
-          lensingRing.scale.set(pulse, pulse, pulse);
-
-          glowLight.intensity = 1.0 + Math.sin(t) * 0.4;
-          diskMat.emissiveIntensity = 2.5 + Math.sin(t) * 1.0;
-
-          // Slow drift rotation
-          accretionDisk.rotation.z += 0.005;
-          lensingRing.rotation.z -= 0.003;
-        }
-
-        if (state === 'listening' || state === 'speaking') {
-          // EXCITING listening state: 30% larger and much faster
-          const baseScale = 1.3;
-          const distortion = (1 + amplitude * 0.5) * baseScale;
-          const energy = amplitude * 10;
-
-          // Electric flicker effect: High frequency + jitter
-          const flicker = Math.sin(Date.now() * 0.05) * 2.0 + (Math.random() * 1.2);
-
-          shadow.scale.set(distortion * 0.8, distortion * 0.8, distortion * 0.8);
-          accretionDisk.scale.set(distortion * 1.1, distortion * 1.0, distortion);
-          lensingRing.scale.set(distortion * 0.9, distortion * 1.1, distortion);
-
-          diskMat.emissiveIntensity = 6 + energy * 4 + flicker;
-          lensMat.emissiveIntensity = 5 + energy * 4 + flicker;
-          glowLight.intensity = 7 + energy * 6 + flicker;
-
-          // Much faster energetic rotation
-          accretionDisk.rotation.z += 0.06 + amplitude * 0.3;
-          lensingRing.rotation.z -= 0.05 + amplitude * 0.3;
-        }
-
-        if (state === 'processing') {
-          // Fast steady rotation during processing
-          accretionDisk.rotation.z += 0.2;
-          lensingRing.rotation.z += 0.16;
-          diskMat.emissiveIntensity = 5; // Steady glow
-          lensMat.emissiveIntensity = 4;
-          glowLight.intensity = 5;
-        }
+      // 1. Color State Management
+      if (isHighEnergy) {
+        targetColor.setHex(0x2dd4bf); // Soft Cyan/Teal
+      } else if (state === 'processing') {
+        targetColor.setHex(0xffffff);
+      } else {
+        targetColor.setHex(0xaaaaaa); // Neutral Grayscale
       }
+      currentColor.lerp(targetColor, 0.05);
+
+      // 2. Breathing and Scale
+      const baseScale = isHighEnergy ? 1.15 : 1.0;
+      const breatheSpeed = isHighEnergy ? 3 : 1.5;
+      const breatheAmount = isHighEnergy ? 0.05 : 0.03;
+      const pulse = baseScale + Math.sin(time * breatheSpeed) * breatheAmount;
+      particles.scale.set(pulse, pulse, pulse);
+
+      // 3. Particle Motion
+      const posAttr = geometry.attributes.position;
+      const colAttr = geometry.attributes.color;
+      const speedMult = isHighEnergy ? (1 + amplitude * 3) : 1;
+
+      for (let i = 0; i < particleCount; i++) {
+        // Slow rotation/drift inside the sphere
+        const px = posAttr.getX(i);
+        const py = posAttr.getY(i);
+        const pz = posAttr.getZ(i);
+
+        // Apply velocities and some noise
+        posAttr.setX(i, px + velocities[i * 3] * speedMult);
+        posAttr.setY(i, py + velocities[i * 3 + 1] * speedMult);
+        posAttr.setZ(i, pz + velocities[i * 3 + 2] * speedMult);
+
+        // Containment: wrap particles back if they drift too far
+        const dist = Math.sqrt(px * px + py * py + pz * pz);
+        if (dist > 0.9) {
+          posAttr.setX(i, px * 0.95);
+          posAttr.setY(i, py * 0.95);
+          posAttr.setZ(i, pz * 0.95);
+        }
+
+        // Color update
+        colAttr.setXYZ(i, currentColor.r, currentColor.g, currentColor.b);
+      }
+      posAttr.needsUpdate = true;
+      colAttr.needsUpdate = true;
+
+      // 4. Glow Logic
+      glowLight.color.copy(currentColor);
+      glowLight.intensity = isHighEnergy ? (2 + amplitude * 5) : (1 + Math.sin(time) * 0.5);
 
       renderer.render(scene, camera);
     };
@@ -187,16 +152,8 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
     return () => {
       cancelAnimationFrame(rafId);
       renderer.dispose();
-      sphereGeo.dispose();
-      sphereMat.dispose();
-      ringGeo.dispose();
-      ringMat.dispose();
-      diskGeo.dispose();
-      diskMat.dispose();
-      lensGeo.dispose();
-      lensMat.dispose();
-      glowGeo.dispose();
-      glowMat.dispose();
+      geometry.dispose();
+      material.dispose();
     };
   }, [state]);
 
@@ -206,12 +163,12 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
       onClick={onTap}
       className="relative flex items-center justify-center cursor-pointer"
       style={{
-        width: 160,
-        height: 160,
-        filter: 'drop-shadow(0 0 25px rgba(0, 255, 120, 0.4))'
+        width: 200,
+        height: 200,
       }}
     >
-      <div className="absolute w-24 h-4 bottom-[20%] left-1/2 -translate-x-1/2 rounded-full bg-black/40 blur-lg pointer-events-none" />
+      {/* Soft shadow base - cleaner without the green tint */}
+      <div className="absolute w-32 h-6 bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/5 blur-xl pointer-events-none" />
     </div>
   );
 }
