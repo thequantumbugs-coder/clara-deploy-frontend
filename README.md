@@ -60,8 +60,8 @@ cd frontend && npm install && npm run dev
 
 ## Configuration
 
-- Copy `.env.example` to `.env` in the project root and set API keys (e.g. `GROQ_API_KEY`, `SARVAM_*`) if you use backend features that need them.
-- **College knowledge (RAG):** To let Clara answer from `college_knowledge.txt`, run once: `python -m backend.ingest_college_knowledge`. See BASELINE.md for details.
+- Copy `.env.example` to `.env` in the project root and set API keys (e.g. `GROQ_API_KEY`, `SARVAM_*`) and **`POSTGRES_PASSWORD`** for RAG. See **backend/POSTGRES_SETUP.md** for PostgreSQL + pgvector (Ubuntu) and env details.
+- **College knowledge (RAG):** Start PostgreSQL (e.g. `docker compose up -d`), run schema once (`backend/scripts/init_pgvector.sql`), then run: `python -m backend.ingest_college_knowledge_pg` when `college_knowledge.txt` is ready.
 - Frontend: optional `frontend/.env.local` (e.g. `GEMINI_API_KEY`, `VITE_WS_URL` for a different backend WebSocket URL such as `ws://localhost:8002/ws/clara`).
 
 ### Voice / TTS (CLARA speaks in your language)

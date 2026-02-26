@@ -132,37 +132,50 @@ export default function VoiceOrbCanvas({ state, amplitude, onTap }: VoiceOrbCanv
         group.rotation.y = Math.cos(Date.now() * 0.0005) * 0.1;
 
         if (state === 'idle' || state === 'off') {
-          const t = Date.now() * 0.0012;
-          const pulse = 1 + Math.sin(t) * 0.03;
+          // VERY calm idle
+          const t = Date.now() * 0.0008;
+          const pulse = 1 + Math.sin(t) * 0.02;
           shadow.scale.set(pulse, pulse, pulse);
           accretionDisk.scale.set(pulse, pulse, pulse);
           lensingRing.scale.set(pulse, pulse, pulse);
 
-          glowLight.intensity = 1.2 + Math.sin(t) * 0.8;
-          diskMat.emissiveIntensity = 3.5 + Math.sin(t) * 1.5;
+          glowLight.intensity = 1.0 + Math.sin(t) * 0.4;
+          diskMat.emissiveIntensity = 2.5 + Math.sin(t) * 1.0;
+
+          // Slow drift rotation
+          accretionDisk.rotation.z += 0.005;
+          lensingRing.rotation.z -= 0.003;
         }
 
         if (state === 'listening' || state === 'speaking') {
-          const distortion = 1 + amplitude * 0.45;
-          const energy = amplitude * 8; // Capped for stability
+          // EXCITING listening state: 30% larger and much faster
+          const baseScale = 1.3;
+          const distortion = (1 + amplitude * 0.5) * baseScale;
+          const energy = amplitude * 10;
 
-          shadow.scale.set(distortion, distortion, distortion);
-          accretionDisk.scale.set(distortion * 1.15, distortion * 1.05, distortion);
-          lensingRing.scale.set(distortion * 0.95, distortion * 1.15, distortion);
+          // Electric flicker effect: High frequency + jitter
+          const flicker = Math.sin(Date.now() * 0.05) * 2.0 + (Math.random() * 1.2);
 
-          diskMat.emissiveIntensity = 4 + energy * 3;
-          lensMat.emissiveIntensity = 3 + energy * 3;
-          glowLight.intensity = 4 + energy * 5;
+          shadow.scale.set(distortion * 0.8, distortion * 0.8, distortion * 0.8);
+          accretionDisk.scale.set(distortion * 1.1, distortion * 1.0, distortion);
+          lensingRing.scale.set(distortion * 0.9, distortion * 1.1, distortion);
 
-          accretionDisk.rotation.z += 0.02 + amplitude * 0.2;
-          lensingRing.rotation.z -= 0.02 + amplitude * 0.2;
+          diskMat.emissiveIntensity = 6 + energy * 4 + flicker;
+          lensMat.emissiveIntensity = 5 + energy * 4 + flicker;
+          glowLight.intensity = 7 + energy * 6 + flicker;
+
+          // Much faster energetic rotation
+          accretionDisk.rotation.z += 0.06 + amplitude * 0.3;
+          lensingRing.rotation.z -= 0.05 + amplitude * 0.3;
         }
 
         if (state === 'processing') {
-          accretionDisk.rotation.z += 0.15;
-          lensingRing.rotation.z += 0.12;
-          // Pulsing intensity but color stays PURE_RADIUM
-          diskMat.emissiveIntensity = 2 + Math.sin(Date.now() * 0.04) * 6;
+          // Fast steady rotation during processing
+          accretionDisk.rotation.z += 0.2;
+          lensingRing.rotation.z += 0.16;
+          diskMat.emissiveIntensity = 5; // Steady glow
+          lensMat.emissiveIntensity = 4;
+          glowLight.intensity = 5;
         }
       }
 

@@ -1,5 +1,228 @@
-# College Knowledge Base
+# SAI VIDYA INSTITUTE OF TECHNOLOGY - College knowledge for CLARA RAG. Answer only from this context.
 
-<!-- Add your college information here -->
-<!-- This file will be chunked and ingested into ChromaDB -->
-<!-- Format: Plain text with information about admissions, fees, departments, courses, etc. -->
+PART 1: INSTITUTION OVERVIEW
+ABOUT SVIT
+Sai Vidya Institute of Technology, established in 2008 by the Sri Sai Vidya Vikas Shikshana Samithi and founded by a team of eminent academicians, SVIT is a premier institution affiliated with Visvesvaraya Technological University (VTU), Belagavi, approved by the All India Council for Technical Education (AICTE), New Delhi, and recognized by the Government of Karnataka. The institute is committed to providing a dynamic learning environment through its highly qualified, dedicated teaching and non-teaching staff, emphasizing academic rigor, innovation, and holistic development to ensure student success in a competitive global landscape. SVIT offers a vibrant atmosphere featuring modern infrastructure, well-equipped libraries, and advanced laboratories, where students benefit from active clubs, cultural activities, and continuous mentoring from experienced faculty. Furthermore, the institution maintains strong industry collaborations to facilitate internships and hands-on training, supported by a dedicated placement cell that ensures robust career opportunities with leading recruiters.
+
+• Full Name: Sai Vidya Institute of Technology (SVIT)
+• Location: Rajanukunte, Via Yalahanka, Bengaluru, Karnataka 560 064
+• Established: 2008
+• Founded By: Sri Sai Vidya Vikas Shikshana Samithi (Group of eminent academicians)
+• Campus Area: 12 acres
+• Total Students: 1,511+
+• Total Faculty: 94+
+• Tagline: "Learn to Lead"
+• Motto: "Empowering Engineers of Tomorrow with Cutting-Edge Education, Industry-Driven Curriculum, and Top Placements"
+
+Academic Affiliations & Approvals
+• University Affiliation: Visvesvaraya Technological University (VTU), Belagavi
+• Technical Approval: All India Council for Technical Education (AICTE), New Delhi
+• Government Recognition: Government of Karnataka
+• Accreditation: NAAC Grade A
+• NBA Accreditation: Available for select departments (ECE)
+
+Campus Infrastructure
+• Modern infrastructure with advanced laboratories
+• Well-equipped libraries and extensive learning resources
+• State-of-the-art computer centers
+• Makers Space Lab for innovation and prototyping
+• Active student clubs and cultural facilities
+• Co-curricular event spaces
+• Industry collaboration centers
+• Research centers and centers of excellence
+
+________________________________________
+PART 2: LEADERSHIP & GOVERNANCE
+Visionary Leadership
+• Founder/Chancellor: Prof. M. R. Holla - Distinguished academician and administrator with 50+ years of academic and administrative experience
+
+Core Leadership Team
+• Dr. Y. Jayasimha – Eminent Electronics Professor, Dean (Academics) & Founder Trustee
+• Prof. R. C. Shanmukha Swamy – Eminent Electrical Professor
+• Dr. A. M. Padma Reddy – Eminent Computer Science Professor
+• Sri R. Srinivas Raju – Practicing Civil Engineer
+• Sri M. K. Manohar – Renowned Chartered Accountant
+• Late Sri Narayana Raju – Renowned Academic Administrator
+
+Principal
+• Dr. Manjunath T N
+
+Vice Principal
+• Dr Lakshminarayanachari K
+
+Deans
+• Dr Y Jayasimha – Dean Academics
+• Prof R C Shanmukhaswamy – Dean Administration
+• Dr A M Padma Reddy – Dean Student Affairs
+• Dr Shantha Kumar B Patil – Associate Dean R&D
+
+Head's of the Department (HOD)
+• Dr. Shashikumar D R – Head of the Department – Computer Science & Engineering
+• Dr. T G Manjunatha – Head of the Department – CSE (AI&ML)
+• Dr. Vrinda Shetty – Head of the Department – Information Science and Engineering
+• Dr. Venkatesha M – Head of the Department – Electronics and Communication Engineering
+• Dr. Nagashree N – Head of the Department – CSE (Data Science)
+• Dr. Ananthayya M B – Head of the Department – Civil Engineering
+• Dr. Raghavendra S – Head of the Department – Mechanical Engineering
+• Dr. Jogish .D – Head of the Department – Master of Business Administration
+• Dr. Arun Kumar R – Head of the Department – Mathematics
+• Dr. Shankar P – Head of the Department – Physics
+• Dr. Bhagya N P – Head of the Department – Chemistry
+
+________________________________________
+PART 3: VISION, MISSION & VALUES
+Vision
+"Contribute dedicated, skilled, and intelligent engineers and business administrators to architect a strong India and a globally progressive world."
+
+Mission
+1. Provide quality education and skill-based training to produce dedicated engineers and managers
+2. Promote research, innovation, and ethical practices by creating a supportive learning environment
+3. Undertake collaborative projects with academia and industry that transform young minds into socially responsible and globally competent professionals
+4. Enhance personality traits and leadership skills that foster entrepreneurship among students
+
+Educational Philosophy
+The institute instills:
+• A strong sense of ethics, values, and moral responsibility
+• An understanding of history, ideals, and societal responsibilities
+• Analytical thinking, creativity, and intellectual curiosity
+
+Core Values
+• Ethics in Engineering - Promoting ethical practices and responsible development
+• Quality & Excellence - Commitment to academic and operational excellence
+• Research & Innovation - Fostering a culture of continuous research and innovation
+
+________________________________________
+PART 4: UNDERGRADUATE PROGRAMS (B.E.) - 4 YEARS
+List of All Engineering Branches
+1. Computer Science & Engineering (CSE) - Intake: 180
+2. CSE (Artificial Intelligence & Machine Learning) - Intake: 120
+3. CSE (Data Science) - Intake: 120
+4. Information Science & Engineering (ISE) - Intake: 120
+5. Electronics & Communication Engineering (ECE) - Intake: 120
+6. Civil Engineering - Intake: 60
+7. Mechanical Engineering - Intake: 30
+
+Computer Science & Engineering (CSE)
+Computer Science & Engineering is a fast evolving branch of Engineering with rapid advancements in the areas like Cloud Computing, Software Development, Artificial Intelligence, Deep Learning, Distributed Systems and so on., creating a huge requirement of software engineers across the globe. Computer Science & Engineering deals with the theoretical foundations of information and computation along with practical techniques for implementation and application. Computer Science engineers can contribute as Software Developers, Hardware Engineers, Database Analysts (SQL), AI and Data Science Engineers, System analysts or System Engineers, Security analysts, Business System Database Developer, Data Modeller, Software Quality Assurance (QA) apart from multi-disciplinary research.
+
+• Intake: 180 students | Duration: 4 Years
+• Focus: Cloud Computing, Software Development, AI, Deep Learning, Distributed Systems
+• Career Paths: Software Developers, Hardware Engineers, Database Analysts, AI/Data Science Engineers, System Analysts, Security Analysts
+• Key Strengths: Modern labs, experienced faculty, industry collaborations, internships
+
+CSE (Artificial Intelligence & Machine Learning)
+The Department of CSE - Artificial Intelligence & Machine Learning at Sai Vidya Institute of Technology is committed to excellence in education, research, and innovation. With a strong foundation in AI, data science, deep learning, and intelligent systems, the department nurtures future-ready engineers equipped to meet the evolving demands of technology and industry. Through hands-on learning, research-driven projects, and active industry collaborations, the department provides an environment that blends creativity with technical expertise. Proudly, the 2021 batch students secured four university ranks at the VTU level, reflecting our dedication to academic quality and student success.
+
+• Intake: 120 students | Duration: 4 Years
+• Special Achievement: 2021 batch students secured FOUR university ranks at VTU level
+• Key Features: NEP-2020 compliant cutting-edge curriculum, Advanced AI/ML/Deep Learning, hands-on projects and hackathons, workshops and guest lectures from industry experts, stipend-based internships through MOUs, IEEE Professional Membership with international conference funding, blended learning with recorded sessions, Skill Development Lab with modern tools
+
+CSE (Data Science)
+The Department of Data Science offers BE in Computer Science and Engineering (Data Science) which is approved by AICTE and is affiliated to VTU, Belagavi from the academic year 2021-22. The exciting journey of the department in the emerging domain of Data Science started in the year 2021 offering an undergraduate B.E. program with an intake of 60 students. From 2022-23 the intake is increased to 120 students. The department is equipping itself with well qualified teaching faculty with rich research, teaching and industrial experience and is committed to impart rigorous training to students to generate knowledge through the state-of-the-art concepts and technologies in Data Science.
+
+• Intake: 120 students (increased from 60 in 2022-23) | Duration: 4 Years | Program Start: 2021-22
+• Focus: Data science using scientific methods to extract knowledge from structured/unstructured data
+• Special Achievement: 2021 batch students secured THREE university ranks at VTU level
+• Key Features: Outcome-Based Education (OBE) framework, state-of-the-art laboratories, rigorous training with advanced concepts and technologies, well-qualified faculty with research and industry experience
+
+Information Science & Engineering (ISE)
+Department of Information Science and Engineering (ISE) started its course of journey of four year B.E course in the year 2008-09 with an intake of 60 students. From 2022-23 the intake is increased to 120 students. The branch has an excellent team of young, dynamic and dedicated faculty members who are highly qualified with rich and vast experience in teaching and industry. The department encourages its faculty and students to interact with the outside world through student internship, workshops, seminars, paper presentation, faculty consultancy, faculty development programmes, industry collaboration and association with professional societies.
+
+• Intake: 120 students (increased from 60 in 2022-23) | Duration: 4 Years | Program Start: 2008-09
+• Key Features: Young dynamic dedicated faculty, latest teaching methodologies and aids, industry collaborations and student internships, entrepreneurial problem-solving techniques, emphasis on ethical practices and environmental concerns, interdisciplinary project-based learning
+
+Electronics & Communication Engineering (ECE)
+The Department of Electronics and Communication Engineering (ECE) at Sai Vidya Institute of Technology (SVIT), Bengaluru, was established in the academic year 2008–09 with an intake of 120 students. The department is affiliated to Visvesvaraya Technological University (VTU), Belagavi, and accredited by the National Board of Accreditation (NBA). The department is mentored by Dr. Y. Jayasimha, Dean (Academics) and Founder Trustee of SVIT, and led by Dr. Venkatesha M. The department comprises highly qualified, dynamic, and research-focused faculty with expertise in VLSI Design, Embedded Systems, Photonics, Signal Processing, Communication Systems, and High-Speed Networks.
+
+• Intake: 120 students | Duration: 4 Years | Program Start: 2008-09 | Accreditation: VTU affiliated, NBA accredited
+• Additional Program: B.E. for Working Professionals (Intake: 30, from 2023-24)
+• PhD Program: VTU-Recognized Research Centre available
+• Expertise Areas: VLSI Design, Embedded Systems, Photonics, Signal Processing, Communication Systems, High-Speed Networks
+• Key Facilities: State-of-the-art labs with industry tools (Cadence, COMSOL, MATLAB, Opti-BPM, Intellisuit), Research grants over 70 Lakhs from DST-SERB, AICTE, VGST, KSCST, Centers of Excellence: Photonics, 5G & Cybersecurity, IoT & Robotics, Active IEEE Student Branch, International research presence, Travel grants for international conferences
+
+Civil Engineering
+Established in 2010, the Department of Civil Engineering has been a cornerstone of the institution's growth, offering a four-year (eight-semester) B.E. program in Civil Engineering with an intake of 30 students initially, now 60. The department is dedicated to shaping skilled civil engineers who can design, innovate, and build sustainable infrastructure for the future. The mission is to provide high quality technical education for a successful career through professional consultancy, outreach and manpower training, and to transform students as frontrunners and guardians of the Natural Environment and Resources.
+
+• Intake: 60 students | Duration: 4 Years | Program Start: 2010
+• Focus Areas: Structural Engineering, Geotechnical Engineering, Transportation Systems, Water Resource Management
+• Key Features: Experienced and dedicated faculty with R&D involvement, regular training and faculty development programs, expert lectures from eminent professionals, strong alumni network in reputed industries globally
+
+Mechanical Engineering
+The department of Mechanical Engineering made its beginning with the establishment of the college in 2010. It offers a 4 years (8 semesters) B.E. course in Mechanical Engineering with an intake of 30 students. The mission of the programme is to impart quality Technical Education in Mechanical Engineering domain through an excellent Teaching-Learning environment and to instill ethical values among students to create Technologically superior global man power through industry participation.
+
+• Intake: 30 students | Duration: 4 Years | Program Start: 2010
+• Focus: Quality technical education with ethical values and global competency
+• Key Features: Well-experienced and dedicated faculty, active researchers in R&D projects, regular training and faculty development programs, emphasis on technical skill enhancement
+
+________________________________________
+PART 5: POSTGRADUATE PROGRAMS
+Master of Business Administration (MBA)
+Established in 2009, the MBA Department has been a pioneer in delivering quality management education. Our mission is to empower students with the knowledge, skills, and values needed for their holistic development. The two-year postgraduate MBA program is affiliated to VTU and approved by AICTE, New Delhi, following a four-semester structure. The program is delivered by highly experienced full-time faculty members along with industry experts. The department is led by Dr. D. Jogish (MBA, Ph.D.), who brings more than 25 years of combined academic and industry experience.
+
+• Intake: 120 students | Duration: 2 Years (4 Semesters) | Program Start: 2009
+• Affiliation: VTU affiliated | Approval: AICTE approved
+• Leadership: Dr. D. Jogish (MBA, Ph.D.) - 25+ years combined academic and industry experience
+• Faculty Quality: Average 10+ years teaching and research experience
+• Specializations Offered: Finance, Marketing, Human Resource Management, Business Analytics
+• Key Features: Well-equipped library and modern management laboratory, state-of-the-art computer center, experienced full-time faculty with industry practitioners, alumni in leading global corporations
+
+Admission Requirements (MBA)
+• Graduation with minimum 50% aggregate
+• Entrance Exams: CAT, MAT, XAT, CMAT, KMAT, PGCET
+• Expected Cut Off (General): 55-65 percentile
+
+Basic Science Departments
+Mathematics – One of the pioneering departments offering assistance to many engineering courses. Committed to quality education in mathematics; promotes mathematical thinking through seminars, workshops, and guest lectures; encourages computational skills using MATLAB and Python.
+
+Physics – Foundational pillar for all engineering disciplines. Well-equipped laboratory for hands-on skill development. Designated as VTU Research Centre for Ph.D. program. Research findings published in peer-reviewed international journals.
+
+Chemistry – Headed by Dr. Bhagya N P. Provides thorough fundamental knowledge in Applied Chemistry. Committed to innovative teaching methodologies and highest ethical standards. Recognized as VTU Research Centre for Ph.D. programme.
+
+________________________________________
+PART 6: ADMISSION ELIGIBILITY & ENTRANCE EXAMS
+B.E. Engineering Programs Eligibility
+• Educational Qualification: 10+2 with 45% aggregate
+• Compulsory Subjects: Physics and Mathematics
+• Optional Subjects: Chemistry, Biotechnology, Biology, Computer Science, or Electronics
+• General Category: 45% aggregate marks
+• SC/ST/Category-1/OBC: 40% aggregate marks (with relaxation)
+
+B.E. Entrance Exams
+• KCET (Karnataka Common Entrance Test) - State counseling
+• COMEDK (Consortium of Medical, Engineering and Dental Colleges) - Private/Management admission
+• Management Quota: Direct admission available
+
+MBA Entrance Exams
+• CAT, MAT, XAT, CMAT, KMAT, PGCET
+
+________________________________________
+PART 7: COMPREHENSIVE FEES STRUCTURE
+UNDERGRADUATE ENGINEERING (B.E.) - 4 YEARS
+KCET (State Admission): All Engineering Branches – Annual Fees ₹75,000 - ₹85,000, Total (4 Years) ₹3,00,000 - ₹3,40,000. Civil & Mechanical (2024-25): ₹1,10,000 annual, ₹4,40,000 total.
+
+COMEDK: CSE & All Branches – Annual Fees ₹1,50,000 - ₹1,75,000, Skill Lab Fees ₹30,000.
+
+MANAGEMENT QUOTA (2025-26): CSE ₹3,50,000 annual (₹14,00,000 total), CSE (AI & ML) ₹3,50,000 (₹14,00,000), CSE (Data Science) ₹2,50,000 (₹10,00,000), ISE ₹2,50,000 (₹10,00,000), ECE ₹2,00,000 (₹8,00,000), Civil Engineering CET-FEES*, Mechanical Engineering CET-FEES*. CET-FEES as per Karnataka Examinations Authority (KEA) notification.
+
+Additional Engineering Fees (One-Time): Application ₹2,000, Exam ₹5,000, Library/Technology ₹3,000, Miscellaneous ₹5,000, Skill Lab & Study Material ₹30,000, Total One-Time ₹45,000.
+
+MBA PROGRAM (2 Years): Regular MBA via Entrance Exams – Total ₹3,10,000 - ₹3,95,000 (Annual ₹1,55,000 - ₹1,97,500). MBA by Specialization (Finance, HR, IT, Operations, Marketing): ₹1,40,000 total each. General MBA: ₹1,55,000 - ₹3,10,000. Additional: Application ₹2,000, Exam ₹5,000, Library/Technology ₹3,000, Miscellaneous ₹5,000. Installment options available; Online Payment: SBI Online Collection Portal.
+
+Scholarship Opportunities (Government of Karnataka): Post-Metric Scholarship for SC/ST, Fee Reimbursement for SC/ST, Fee Concession for Category I/II/III, National Scholarship Portal (NSP) – Minority Religion Scholarship, Defence Scholarship. Application Period: August every year.
+
+________________________________________
+PART 8: PLACEMENT & CAREER SUPPORT
+Placement Philosophy: "To reap the benefits tomorrow, we must sow the seeds today – Innovation"
+
+Placement Objectives
+1. Provide 100% placement assistance and professional career support
+2. Train students in communication, aptitude, technical knowledge, and interview preparation
+3. Build strong industry-institution partnerships for internships and campus placements
+4. Guide students in higher studies, entrepreneurship, and competitive exams
+5. Bring companies on campus for recruitment drives and career interactions
+
+Training & Skill Development Programs
+1. Aptitude & Logical Reasoning Training
+2. Soft Skills & Communication Skills
+3. Technical Skill Development Workshops (Core, IT, Emerging Technologies)
+4. Mock Interviews & Group Discussions

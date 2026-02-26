@@ -178,6 +178,20 @@ export default function ChatScreen({
                 <MessageWrapper msg={msg} propIsListening={propIsListening} t={t} />
               </div>
             ))}
+
+            {/* WhatsApp-style Typing Indicator */}
+            {isProcessing && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="clara-typing-container"
+              >
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 

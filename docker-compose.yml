@@ -1,0 +1,24 @@
+# PostgreSQL 15 + pgvector for CLARA RAG. Bind only to localhost.
+# Usage: set POSTGRES_PASSWORD in .env, then: docker compose up -d
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: clara-postgres
+    environment:
+      POSTGRES_DB: clara_db
+      POSTGRES_USER: clara_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - clara_pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clara_user -d clara_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  clara_pgdata:
