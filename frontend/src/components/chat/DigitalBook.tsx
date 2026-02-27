@@ -47,60 +47,69 @@ export default function DigitalBook({ pages }: DigitalBookProps) {
 
     return (
         <div className="premium-book-viewport">
-            {/* Spiral Binding - Fixed on the left edge */}
-            <SpiralBinding />
-
             <div className="premium-book-container">
                 <div className="premium-book-ambient-shadow" />
 
-                {/* Under Layer (The page being revealed) */}
-                <div className="page-layer under">
-                    <PageContent page={pages[currentPage]} pageNumber={currentPage + 1} />
-                </div>
-
-                {/* Turning Layer (Animated) */}
-                <AnimatePresence initial={false} custom={direction}>
-                    <motion.div
-                        key={prevPageIdx}
-                        custom={direction}
-                        className="page-layer active"
-                        initial={{ rotateY: 0, x: 0, opacity: 1 }}
-                        animate={{
-                            rotateY: direction > 0 ? -110 : 110,
-                            x: direction > 0 ? -20 : 20,
-                            opacity: 0,
-                            skewY: direction > 0 ? -5 : 5,
-                        }}
-                        exit={{ opacity: 0 }}
-                        transition={{
-                            duration: 0.9,
-                            ease: [0.645, 0.045, 0.355, 1.0],
-                        }}
-                        onAnimationStart={() => setIsAnimating(true)}
-                        onAnimationComplete={() => setIsAnimating(false)}
-                        style={{ transformOrigin: 'left center' }}
-                    >
-                        <PageContent page={pages[prevPageIdx]} pageNumber={prevPageIdx + 1} isTurning />
-                    </motion.div>
-                </AnimatePresence>
-
-                {/* Hover Preview Effects */}
-                {!isAnimating && (
-                    <div className="page-layer active" style={{ pointerEvents: 'none' }}>
-                        <motion.div
-                            animate={{
-                                rotateY: isHoveringRight ? -5 : (isHoveringLeft ? 5 : 0),
-                                x: isHoveringRight ? -2 : (isHoveringLeft ? 2 : 0)
-                            }}
-                            className="w-full h-full"
-                            style={{ transformOrigin: 'left center' }}
-                        >
-                            <div className="premium-page-paper" style={{ boxShadow: 'none', background: 'transparent', border: 'none' }}>
-                                {/* This is just a visual shell for the hover lift */}
-                            </div>
-                        </motion.div>
+                <div className="premium-book-wrapper">
+                    {/* Fixed Spiral Spine - Always visible on the left side */}
+                    <div className="book-spiral-spine">
+                        {Array.from({ length: 24 }).map((_, i) => (
+                            <div key={i} className="spiral-loop" />
+                        ))}
                     </div>
-                )}
+
+                    {/* Content Anchor for the pages */}
+                    <div className="book-content-anchor">
+                        {/* Under Layer (The page being revealed) */}
+                        <div className="page-layer under">
+                            <PageContent page={pages[currentPage]} pageNumber={currentPage + 1} />
+                        </div>
+
+                        {/* Turning Layer (Animated) */}
+                        <AnimatePresence initial={false} custom={direction}>
+                            <motion.div
+                                key={prevPageIdx}
+                                custom={direction}
+                                className="page-layer active"
+                                initial={{ rotateY: 0, x: 0, opacity: 1 }}
+                                animate={{
+                                    rotateY: direction > 0 ? -110 : 110,
+                                    x: direction > 0 ? -20 : 20,
+                                    opacity: 0,
+                                    skewY: direction > 0 ? -5 : 5,
+                                }}
+                                exit={{ opacity: 0 }}
+                                transition={{
+                                    duration: 0.9,
+                                    ease: [0.645, 0.045, 0.355, 1.0],
+                                }}
+                                onAnimationStart={() => setIsAnimating(true)}
+                                onAnimationComplete={() => setIsAnimating(false)}
+                                style={{ transformOrigin: 'left center' }}
+                            >
+                                <PageContent page={pages[prevPageIdx]} pageNumber={prevPageIdx + 1} isTurning />
+                            </motion.div>
+                        </AnimatePresence>
+
+                        {/* Hover Preview Effects */}
+                        {!isAnimating && (
+                            <div className="page-layer active" style={{ pointerEvents: 'none' }}>
+                                <motion.div
+                                    animate={{
+                                        rotateY: isHoveringRight ? -5 : (isHoveringLeft ? 5 : 0),
+                                        x: isHoveringRight ? -2 : (isHoveringLeft ? 2 : 0)
+                                    }}
+                                    className="w-full h-full"
+                                    style={{ transformOrigin: 'left center' }}
+                                >
+                                    <div className="premium-page-paper" style={{ boxShadow: 'none', background: 'transparent', border: 'none' }}>
+                                        {/* This is just a visual shell for the hover lift */}
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* Navigation Overlays */}
                 <div className="premium-nav-overlay">
@@ -122,20 +131,10 @@ export default function DigitalBook({ pages }: DigitalBookProps) {
     );
 }
 
-function SpiralBinding() {
-    return (
-        <div className="book-spiral-binding">
-            {Array.from({ length: 24 }).map((_, i) => (
-                <div key={i} className="spiral-loop" />
-            ))}
-        </div>
-    );
-}
-
 function PageContent({ page, pageNumber, isTurning = false }: { page: BookPage; pageNumber: number; isTurning?: boolean }) {
     if (!page) return null;
 
-    const renderContent = () => {
+    const renderLayout = () => {
         if (page.layout === 'cover') {
             return (
                 <div className="page-cover">
@@ -148,7 +147,7 @@ function PageContent({ page, pageNumber, isTurning = false }: { page: BookPage; 
 
         if (page.layout === 'editorial') {
             return (
-                <div className="editorial-layout">
+                <div className="overview-editorial-grid">
                     <div className="editorial-text-side">
                         {page.title && <h2 className="premium-page-title">{page.title}</h2>}
                         <div className="premium-page-body">
@@ -163,7 +162,7 @@ function PageContent({ page, pageNumber, isTurning = false }: { page: BookPage; 
         }
 
         return (
-            <div className="premium-page-content">
+            <div className="premium-page-inner">
                 {page.title && <h2 className="premium-page-title">{page.title}</h2>}
                 <div className="premium-page-body">
                     {page.content}
@@ -186,7 +185,7 @@ function PageContent({ page, pageNumber, isTurning = false }: { page: BookPage; 
         <div className="premium-page-paper">
             <div className="paper-texture" />
             {isTurning && <div className="page-curl-overlay" style={{ opacity: 1 }} />}
-            {renderContent()}
+            {renderLayout()}
         </div>
     );
 }
