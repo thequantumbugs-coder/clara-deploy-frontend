@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+
+/** Long fallback so we only advance when TTS actually finishes; avoids page turning before audio plays. */
+const READ_ALOUD_FALLBACK_MS = 15000;
+const COVER_AUTO_FLIP_MS = 2500;
 
 interface BookPage {
     title?: string;
@@ -11,14 +15,110 @@ interface BookPage {
 
 interface DigitalBookProps {
     pages: BookPage[];
+    pageTexts?: string[];
+    sendMessage?: (msg: object) => void;
+    payload?: { audioBase64?: string } | null;
+    /** Called when last content page TTS finishes; close book and return to chat. */
+    onComplete?: () => void;
+    /** When true, skip playing the first incoming audio (overview reply TTS). */
+    skipFirstAudio?: boolean;
 }
 
-export default function DigitalBook({ pages }: DigitalBookProps) {
+export default function DigitalBook({ pages, pageTexts, sendMessage, payload, onComplete, skipFirstAudio = false }: DigitalBookProps) {
     const [currentPage, setCurrentPage] = useState(0);
     const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
     const [isAnimating, setIsAnimating] = useState(false);
     const [isHoveringRight, setIsHoveringRight] = useState(false);
     const [isHoveringLeft, setIsHoveringLeft] = useState(false);
+    const isReadAloud = Boolean(pageTexts?.length && sendMessage);
+    const lastPlayedRef = useRef<string | null>(null);
+    const isPlayingRef = useRef(false);
+    const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasAdvancedSinceSendRef = useRef(false);
+    const hasSkippedFirstRef = useRef(false);
+
+    const clearFallback = () => {
+        if (fallbackTimerRef.current) {
+            clearTimeout(fallbackTimerRef.current);
+            fallbackTimerRef.current = null;
+        }
+    };
+
+    const advanceOrComplete = () => {
+        if (currentPage >= pages.length - 1) {
+            onComplete?.();
+            return;
+        }
+        clearFallback();
+        setDirection(1);
+        setCurrentPage((prev) => prev + 1);
+    };
+
+    const goToNextPage = () => {
+        setCurrentPage((prev) => {
+            if (prev >= pages.length - 1) return prev;
+            clearFallback();
+            setDirection(1);
+            return prev + 1;
+        });
+    };
+
+    // Cover (page 0): no TTS, auto-flip after delay. Content pages: send diary_tts, then advance on audio end or fallback.
+    useEffect(() => {
+        if (!isReadAloud || !pageTexts || !sendMessage) return;
+        if (currentPage === 0) {
+            const t = setTimeout(goToNextPage, COVER_AUTO_FLIP_MS);
+            return () => clearTimeout(t);
+        }
+        const text = pageTexts[currentPage];
+        if (text == null || text === '') {
+            advanceOrComplete();
+            return;
+        }
+        hasAdvancedSinceSendRef.current = false;
+        sendMessage({ action: 'diary_tts', text });
+        clearFallback();
+        fallbackTimerRef.current = setTimeout(advanceOrComplete, READ_ALOUD_FALLBACK_MS);
+        return clearFallback;
+    }, [currentPage, isReadAloud, pageTexts?.length]);
+
+    useEffect(() => {
+        if (!isReadAloud || !payload?.audioBase64) return;
+        const audioBase64 = payload.audioBase64;
+        if (audioBase64 === lastPlayedRef.current || isPlayingRef.current || hasAdvancedSinceSendRef.current) return;
+        if (skipFirstAudio && !hasSkippedFirstRef.current) {
+            hasSkippedFirstRef.current = true;
+            lastPlayedRef.current = audioBase64;
+            return;
+        }
+        lastPlayedRef.current = audioBase64;
+        isPlayingRef.current = true;
+        clearFallback();
+        try {
+            const binary = atob(audioBase64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const blob = new Blob([bytes], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            const onEnd = () => {
+                URL.revokeObjectURL(url);
+                isPlayingRef.current = false;
+                hasAdvancedSinceSendRef.current = true;
+                advanceOrComplete();
+            };
+            audio.addEventListener('ended', onEnd);
+            audio.addEventListener('error', onEnd);
+            audio.play().catch(() => onEnd());
+        } catch {
+            isPlayingRef.current = false;
+            advanceOrComplete();
+        }
+    }, [payload?.audioBase64, currentPage, isReadAloud, pages.length]);
+
+    useEffect(() => {
+        return () => clearFallback();
+    }, []);
 
     const handleNext = (e: React.MouseEvent) => {
         e.preventDefault();

@@ -7,7 +7,6 @@ import { LanguageProvider } from './context/LanguageContext';
 import SleepScreen from './components/SleepScreen';
 import LanguageSelect from './components/LanguageSelect';
 import ChatScreen from './components/ChatScreen';
-import type { ChatMessage } from './types/chat';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/clara';
 /** "browser" = Web Speech API only (default for dev); "backend" = send mic_start, use backend recording. */
@@ -25,6 +24,8 @@ export default function App() {
   const { state, payload, isConnected, setManualState, sendMessage, retryConnect, showOfflineBanner } = useWebSocket(WS_URL);
   const [urlOverrideState, setUrlOverrideState] = React.useState<number | null>(null);
 
+  const effectiveState = urlOverrideState !== null ? urlOverrideState : state;
+
   // E2E / test: ?state=5 opens chat directly; sticky so WS cannot overwrite
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -34,8 +35,6 @@ export default function App() {
       if (n >= 0 && n <= 8) setUrlOverrideState(n);
     }
   }, []);
-
-  const effectiveState = urlOverrideState !== null ? urlOverrideState : state;
   const setEffectiveState = (n: number) => {
     setUrlOverrideState(null);
     setManualState(n);
@@ -85,9 +84,9 @@ export default function App() {
       case 4:
       case 5:
         return (
-          <motion.div key="voice" className="w-full h-full">
+          <motion.div key="voice" className="w-full h-full relative">
             <ChatScreen
-              messages={(payload?.messages as ChatMessage[] | undefined) ?? []}
+              messages={payload?.messages ?? []}
               isListening={payload?.isListening ?? false}
               isSpeaking={payload?.isSpeaking ?? false}
               isProcessing={payload?.isProcessing ?? false}
@@ -156,8 +155,10 @@ export default function App() {
 
         {/* Debug Indicator (Hidden in production) */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="absolute bottom-4 right-4 text-[8px] text-stone-800 uppercase tracking-widest pointer-events-none">
-            Kiosk Mode Active • State: {effectiveState} • WS: {isConnected ? 'Connected' : 'Disconnected'}
+          <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[8px] text-stone-800 uppercase tracking-widest">
+            <span className="pointer-events-none">
+              Kiosk Mode Active • State: {effectiveState} • WS: {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
           </div>
         )}
       </div>
