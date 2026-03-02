@@ -129,7 +129,7 @@ def tts_to_base64(text: str, language_code: str) -> str | None:
 
 
 async def process_user_text_and_reply(session: dict, text: str, websocket: WebSocket) -> None:
-    """Shared flow: RAG context, Groq reply, TTS, send state 5 payload. Assumes text is non-empty. Never raises."""
+    """Shared flow: RAG context, Groq reply, TTS (or digitalBook for overview), send state 5 payload. Assumes text is non-empty. Never raises."""
     messages = session.get("messages") or []
     try:
         await websocket.send_json({"state": 5, "payload": _safe_payload(messages=messages, is_processing=True)})
@@ -148,21 +148,39 @@ async def process_user_text_and_reply(session: dict, text: str, websocket: WebSo
             logger.info("Intent=%s context_size=%d chars", intent, len(context))
         else:
             logger.warning("RAG context empty for query")
-        reply_text = None
+
+        reply_result = None
         try:
             if GROQ_API_KEY:
                 from groq import Groq
                 client = Groq(api_key=GROQ_API_KEY)
-                reply_text = generate_reply(intent, text, context, lang, messages, client, RAG_MODEL)
+                reply_result = generate_reply(
+                    intent, text, context, lang, messages, client, RAG_MODEL,
+                    tts_callback=tts_to_base64 if intent == INTENT_COLLEGE_OVERVIEW else None,
+                    language_code=lang_code if intent == INTENT_COLLEGE_OVERVIEW else None,
+                )
             else:
-                reply_text = "I'm sorry, the assistant is not configured."
+                reply_result = "I'm sorry, the assistant is not configured."
         except Exception as e:
             logger.error("LLM/Groq failed: %s", e, exc_info=True)
             err_str = str(e).lower()
             status = getattr(e, "status_code", None) or getattr(e, "code", None)
             if status == 404 or "404" in err_str or ("model" in err_str and "not found" in err_str):
                 logger.warning("Groq model not found (404). Check RAG_MODEL in .env")
-            reply_text = None
+            reply_result = None
+
+        if intent == INTENT_COLLEGE_OVERVIEW and isinstance(reply_result, dict) and "digitalBook" in reply_result:
+            user_msg = {"id": f"user-{uuid.uuid4().hex}", "role": "user", "text": text}
+            session["messages"] = messages + [user_msg]
+            payload = _safe_payload(
+                messages=session["messages"],
+                is_processing=False,
+                is_speaking=False,
+            )
+            payload["digitalBook"] = reply_result["digitalBook"]
+            await websocket.send_json({"state": 5, "payload": payload})
+            return
+        reply_text = reply_result if isinstance(reply_result, str) else None
         if not reply_text or not reply_text.strip():
             if context.strip():
                 logger.info("Using RAG fallback reply (LLM unavailable or empty)")
